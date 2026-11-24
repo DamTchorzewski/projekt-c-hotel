@@ -80,13 +80,15 @@ a bazę zatrzymuje `npm run db:stop`.
 | Stan API i bazy  | <http://localhost:3000/api/v1/health> | `status: "ok"`             |
 | Dokumentacja API | <http://localhost:3000/api/docs>      | Swagger z listą endpointów |
 
-Lokalne konto recepcji: login `recepcja`, hasło `hotel-dev` (tylko do pracy na własnym komputerze, plik
-`backend/.env.example`).
+Klucze są losowe i inne na każdym komputerze: `npm run setup` zapisuje je w plikach `.env`, których nie ma w repozytorium.
+Login recepcji to `recepcja`, a hasło `npm run setup` pokazuje jeden raz.
 
 | Polecenie (w katalogu głównym) | Co robi                                             |
 | ------------------------------ | --------------------------------------------------- |
 | `npm run setup`                | pierwsza konfiguracja                               |
 | `npm start`                    | baza, backend i frontend                            |
+| `npm run reception:password`   | nowe hasło recepcji                                 |
+| `npm run env:new`              | nowe wszystkie klucze lokalne                       |
 | `npm test`                     | testy jednostkowe backendu i testy frontendu        |
 | `npm run test:integration`     | testy backendu na prawdziwej bazie `hotel_c_test`   |
 | `npm run lint`                 | sprawdzenie kodu                                    |
@@ -109,7 +111,7 @@ npm run dev
 | `Docker is not running or does not respond`              | uruchom Docker Desktop i poczekaj, aż pokaże „running”                  |
 | Docker Desktop nie startuje po nagłym zamknięciu (Windows), w błędzie `The file cannot be accessed by the system` | zamknij Docker Desktop, zmień nazwy katalogów `%LOCALAPPDATA%\Docker\run` i `%LOCALAPPDATA%\docker-secrets-engine`, uruchom ponownie |
 | Zajęty port 3000 lub 5173                                | zamknij poprzednie `npm start`                                          |
-| `401` przy logowaniu na konto `recepcja`                 | do starego `backend/.env` dopisz `RECEPTION_LOGIN`, `RECEPTION_PASSWORD_HASH` i `SESSION_SECRET` z `backend/.env.example` |
+| `401` przy logowaniu na konto `recepcja`                 | `npm run reception:password` i ponowne `npm start`                      |
 
 ### Jak frontend korzysta z API
 

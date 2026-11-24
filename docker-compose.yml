@@ -1,5 +1,5 @@
 # Środowisko lokalne projektu Hotel C: baza danych PostgreSQL. (DamianTchorzewski_72206)
-# Uruchomienie: docker compose up -d (DamianTchorzewski_72206)
+# Hasło jest w pliku .env, który tworzy "npm run setup". (DamianTchorzewski_72206)
 
 services:
   postgres:
@@ -7,12 +7,12 @@ services:
     container_name: hotel_c_postgres
     restart: unless-stopped
     environment:
-      # Wartości domyślne pozwalają uruchomić bazę bez pliku .env. (DamianTchorzewski_72206)
       POSTGRES_USER: ${POSTGRES_USER:-hotel_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotel_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run "npm run setup" first}
       POSTGRES_DB: ${POSTGRES_DB:-hotel_c_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Tylko ten komputer, baza nie jest widoczna w sieci lokalnej. (DamianTchorzewski_72206)
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       # Dane przetrwają restart kontenera. (DamianTchorzewski_72206)
       - hotel_c_data:/var/lib/postgresql/data

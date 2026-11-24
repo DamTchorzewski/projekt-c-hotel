@@ -1,13 +1,16 @@
 import {
+  ensureEnvFiles,
+  hasReceptionPassword,
+  setReceptionPassword,
+} from './env.mjs';
+import {
   BACKEND,
-  copyEnvIfMissing,
   ensureDockerRunning,
   ensureNodeVersion,
   ensurePortsFree,
   FRONTEND,
   paint,
   readApiPort,
-  ROOT,
   runSync,
   startDatabase,
 } from './lib.mjs';
@@ -27,8 +30,7 @@ await ensurePortsFree([
 ]);
 
 console.log(paint('green', '\n[1/5] Configuration files'));
-copyEnvIfMissing(ROOT);
-copyEnvIfMissing(BACKEND);
+ensureEnvFiles();
 
 console.log(paint('green', '\n[2/5] Database'));
 startDatabase();
@@ -43,6 +45,10 @@ runSync(
   FRONTEND,
   INSTALL_HINT,
 );
+
+if (!hasReceptionPassword()) {
+  setReceptionPassword();
+}
 
 console.log(paint('green', '\n[4/5] Database schema'));
 runSync('Generating the Prisma client', 'npx', ['prisma', 'generate'], BACKEND);
