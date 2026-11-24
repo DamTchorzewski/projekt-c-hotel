@@ -1,0 +1,171 @@
+// Model danych Hotelu C zgodny z dokumentacją projektu 0.3 (sześć tabel). (DamianTchorzewski_72206)
+// Reguły, których Prisma nie potrafi opisać (CHECK, EXCLUDE, indeksy częściowe, sekwencja numeru), są w migracji. (DamianTchorzewski_72206)
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+}
+
+enum ReservationSource {
+  PORTAL
+  RECEPTION
+  PARTNER_D
+}
+
+enum VoucherStatus {
+  NONE
+  PENDING_VERIFICATION
+  VERIFIED
+  INVALID
+  SETTLED
+  SETTLEMENT_RETRY
+}
+
+enum PartnerType {
+  MASSAGE_A
+  TRAINING_B
+}
+
+enum ServiceSource {
+  PACKAGE
+  EXTRA
+}
+
+enum ServiceStatus {
+  TO_ORDER
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  CANCEL_RETRY
+}
+
+enum RejectionReason {
+  SLOT_TAKEN
+  PARTNER_UNAVAILABLE
+  PARTNER_ERROR
+}
+
+enum Partner {
+  A
+  B
+  D
+}
+
+// Typ pokoju jest tym, co rezerwuje gość i System D. Dane startowe, tylko do odczytu. (DamianTchorzewski_72206)
+model RoomType {
+  id                String   @id @default(uuid()) @db.Uuid
+  code              String   @unique
+  name              String
+  maxCapacity       Int      @map("max_capacity") @db.SmallInt
+  basePricePerNight Decimal  @map("base_price_per_night") @db.Decimal(10, 2)
+  amenities         String[]
+  description       String
+  imageUrl          String   @map("image_url")
+
+  rooms Room[]
+
+  @@map("room_types")
+}
+
+model Room {
+  id         String  @id @default(uuid()) @db.Uuid
+  roomNumber String  @unique @map("room_number")
+  roomTypeId String  @map("room_type_id") @db.Uuid
+  isActive   Boolean @default(true) @map("is_active")
+
+  roomType     RoomType      @relation(fields: [roomTypeId], references: [id])
+  reservations Reservation[]
+
+  @@map("rooms")
+}
+
+model Reservation {
+  id             String            @id @default(uuid()) @db.Uuid
+  // Czytelny numer R-000123 nadaje sekwencja w bazie. (DamianTchorzewski_72206)
+  number         String            @unique @default(dbgenerated("('R-'::text || lpad((nextval('reservation_number_seq'::regclass))::text, 6, '0'::text))"))
+  roomId         String            @map("room_id") @db.Uuid
+  checkIn        DateTime          @map("check_in") @db.Date
+  checkOut       DateTime          @map("check_out") @db.Date
+  guestsCount    Int               @map("guests_count") @db.SmallInt
+  totalPrice     Decimal           @map("total_price") @db.Decimal(10, 2)
+  status         ReservationStatus @default(CONFIRMED)
+  source         ReservationSource
+  voucherCode    String?           @map("voucher_code")
+  voucherStatus  VoucherStatus     @default(NONE) @map("voucher_status")
+  idempotencyKey String?           @unique @map("idempotency_key")
+  notes          String?
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  room            Room                    @relation(fields: [roomId], references: [id])
+  guests          ReservationGuest[]
+  services        PartnerServiceBooking[]
+  integrationLogs IntegrationLog[]
+
+  @@index([roomId, checkIn, checkOut])
+  @@map("reservations")
+}
+
+model ReservationGuest {
+  id            String  @id @default(uuid()) @db.Uuid
+  reservationId String  @map("reservation_id") @db.Uuid
+  firstName     String  @map("first_name")
+  lastName      String  @map("last_name")
+  email         String
+  phone         String
+  isPrimary     Boolean @default(true) @map("is_primary")
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_guests")
+}
+
+// Pozycja planu pobytu: usługa z pakietu (PACKAGE) albo dokupiona (EXTRA). (DamianTchorzewski_72206)
+model PartnerServiceBooking {
+  id                String           @id @default(uuid()) @db.Uuid
+  reservationId     String           @map("reservation_id") @db.Uuid
+  partnerType       PartnerType      @map("partner_type")
+  source            ServiceSource
+  partnerServiceId  String           @map("partner_service_id")
+  serviceName       String           @map("service_name")
+  price             Decimal?         @db.Decimal(10, 2)
+  scheduledAt       DateTime?        @map("scheduled_at") @db.Timestamptz
+  durationMinutes   Int?             @map("duration_minutes") @db.SmallInt
+  status            ServiceStatus    @default(TO_ORDER)
+  externalBookingId String?          @map("external_booking_id")
+  rejectionReason   RejectionReason? @map("rejection_reason")
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
+  @@map("partner_service_bookings")
+}
+
+model IntegrationLog {
+  id            BigInt   @id @default(autoincrement())
+  partner       Partner
+  endpoint      String
+  reservationId String?  @map("reservation_id") @db.Uuid
+  httpStatus    Int?     @map("http_status")
+  latencyMs     Int?     @map("latency_ms")
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@map("integration_logs")
+}

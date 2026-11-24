@@ -1,0 +1,21 @@
+// Kody błędów zwracane w polu "code" odpowiedzi. Są częścią kontraktu API z dokumentacji 0.3. (DamianTchorzewski_72206)
+export enum ApiErrorCode {
+  // Kody ogólne, wyliczane ze statusu HTTP. (DamianTchorzewski_72206)
+  BAD_REQUEST = 'BAD_REQUEST',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  FORBIDDEN = 'FORBIDDEN',
+  NOT_FOUND = 'NOT_FOUND',
+  CONFLICT = 'CONFLICT',
+  UNPROCESSABLE_ENTITY = 'UNPROCESSABLE_ENTITY',
+  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  NOT_IMPLEMENTED = 'NOT_IMPLEMENTED',
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+
+  // Kody domenowe z reguł biznesowych RB. (DamianTchorzewski_72206)
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  INVALID_DATES = 'INVALID_DATES',
+  CAPACITY_EXCEEDED = 'CAPACITY_EXCEEDED',
+  ROOM_NOT_AVAILABLE = 'ROOM_NOT_AVAILABLE',
+  INVALID_STATE = 'INVALID_STATE',
+}
