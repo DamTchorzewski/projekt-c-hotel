@@ -208,6 +208,29 @@ export class ReservationsController {
     return toStayServiceDto(await this.services.book(id, serviceId, dto));
   }
 
+  @Post(':id/services/:serviceId/reschedule')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Move a confirmed service to another time (US-17)',
+    description:
+      'The new time is booked first and the old one is cancelled afterwards. When the partner refuses, the old time stays.',
+  })
+  @ApiOkResponse({ type: StayServiceDto })
+  @ApiErrorResponses({
+    400: 'Invalid time (VALIDATION_ERROR)',
+    401: SESSION_REQUIRED,
+    404: NOT_FOUND,
+    409: 'SLOT_TAKEN, SERVICE_OUTSIDE_STAY, SERVICE_TIME_CONFLICT or INVALID_STATE',
+    503: 'The partner does not answer (PARTNER_UNAVAILABLE)',
+  })
+  async rescheduleService(
+    @Param('id', uuidParamPipe) id: string,
+    @Param('serviceId', uuidParamPipe) serviceId: string,
+    @Body() dto: BookServiceDto,
+  ): Promise<StayServiceDto> {
+    return toStayServiceDto(await this.services.reschedule(id, serviceId, dto));
+  }
+
   @Post(':id/services/:serviceId/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

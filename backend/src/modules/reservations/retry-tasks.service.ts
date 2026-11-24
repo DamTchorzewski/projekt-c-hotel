@@ -29,9 +29,14 @@ export class RetryTasksService {
   ) {}
 
   async findAll(): Promise<RetryTasksResponseDto> {
-    const [services, reservations] = await Promise.all([
+    const [services, moved, reservations] = await Promise.all([
       this.prisma.partnerServiceBooking.findMany({
         where: { status: ServiceStatus.CANCEL_RETRY },
+        include: { reservation: true },
+        orderBy: { updatedAt: 'asc' },
+      }),
+      this.prisma.partnerServiceBooking.findMany({
+        where: { previousExternalBookingId: { not: null } },
         include: { reservation: true },
         orderBy: { updatedAt: 'asc' },
       }),
@@ -51,8 +56,11 @@ export class RetryTasksService {
 
     return {
       items: [
-        ...services.map((service): RetryTaskDto => ({
-          id: `service:${service.id}`,
+        ...[
+          ...services.map((service) => ({ kind: 'service', service })),
+          ...moved.map((service) => ({ kind: 'moved', service })),
+        ].map(({ kind, service }): RetryTaskDto => ({
+          id: `${kind}:${service.id}`,
           type: RetryTaskType.CANCEL_SERVICE,
           partner: service.partnerType === PartnerType.MASSAGE_A ? 'A' : 'B',
           reservationId: service.reservationId,
@@ -83,6 +91,9 @@ export class RetryTasksService {
     }
     if (kind === 'service') {
       return this.retryService(taskId, id);
+    }
+    if (kind === 'moved') {
+      return this.retryMoved(taskId, id);
     }
     if (kind === 'voucher') {
       return this.retryVoucher(taskId, id);
@@ -124,6 +135,38 @@ export class RetryTasksService {
               : this.cancellation.dataAfterSingleCancellation(service),
         });
         return { id: taskId, done: true, status: updated.status };
+      },
+    );
+  }
+
+  private async retryMoved(
+    taskId: string,
+    serviceId: string,
+  ): Promise<RetryResultDto> {
+    const owner = await this.prisma.partnerServiceBooking.findUnique({
+      where: { id: serviceId },
+    });
+    if (!owner) {
+      throw this.notFound();
+    }
+
+    return this.lock.run(
+      { id: owner.reservationId },
+      async (tx, reservation) => {
+        const service = reservation.services.find(
+          (item) => item.id === serviceId,
+        );
+        if (!service?.previousExternalBookingId) {
+          throw this.notFound();
+        }
+        const done = await this.cancellation.cancelPreviousAtPartner(service);
+        if (done) {
+          await tx.partnerServiceBooking.update({
+            where: { id: service.id },
+            data: { previousExternalBookingId: null },
+          });
+        }
+        return { id: taskId, done, status: service.status };
       },
     );
   }

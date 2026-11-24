@@ -66,6 +66,8 @@ interface Booking {
 
 export class PartnerMocks {
   readonly calls: MockCall[] = [];
+  // Jednorazowy błąd anulowania, do testu przeniesienia usługi. (DamianTchorzewski_72206)
+  failNextCancel = false;
   private readonly modes: Record<MockPartner, MockMode> = {
     a: 'ok',
     b: 'ok',
@@ -87,6 +89,7 @@ export class PartnerMocks {
     this.bookings = [];
     this.settled = new Map();
     this.calls.length = 0;
+    this.failNextCancel = false;
   }
 
   async start(port = 0, host = '127.0.0.1'): Promise<string> {
@@ -228,6 +231,11 @@ export class PartnerMocks {
             item.id === decodeURIComponent(cancel[1]!),
         )
       : undefined;
+    if (method === 'POST' && booking && this.failNextCancel) {
+      this.failNextCancel = false;
+      reply(500, { message: 'Simulated failure' });
+      return;
+    }
     if (method === 'POST' && booking) {
       booking.cancelled = true;
       reply(200, { id: booking.id, status: 'CANCELLED' });

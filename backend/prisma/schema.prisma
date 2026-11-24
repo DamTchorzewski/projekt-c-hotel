@@ -137,19 +137,21 @@ model ReservationGuest {
 
 // Pozycja planu pobytu: usługa z pakietu (PACKAGE) albo dokupiona (EXTRA). (DamianTchorzewski_72206)
 model PartnerServiceBooking {
-  id                String           @id @default(uuid()) @db.Uuid
-  reservationId     String           @map("reservation_id") @db.Uuid
-  partnerType       PartnerType      @map("partner_type")
-  source            ServiceSource
-  partnerServiceId  String           @map("partner_service_id")
-  serviceName       String           @map("service_name")
-  price             Decimal?         @db.Decimal(10, 2)
-  scheduledAt       DateTime?        @map("scheduled_at") @db.Timestamptz
-  durationMinutes   Int?             @map("duration_minutes") @db.SmallInt
-  status            ServiceStatus    @default(TO_ORDER)
-  externalBookingId String?          @map("external_booking_id")
-  rejectionReason   RejectionReason? @map("rejection_reason")
-  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  id                        String           @id @default(uuid()) @db.Uuid
+  reservationId             String           @map("reservation_id") @db.Uuid
+  partnerType               PartnerType      @map("partner_type")
+  source                    ServiceSource
+  partnerServiceId          String           @map("partner_service_id")
+  serviceName               String           @map("service_name")
+  price                     Decimal?         @db.Decimal(10, 2)
+  scheduledAt               DateTime?        @map("scheduled_at") @db.Timestamptz
+  durationMinutes           Int?             @map("duration_minutes") @db.SmallInt
+  status                    ServiceStatus    @default(TO_ORDER)
+  externalBookingId         String?          @map("external_booking_id")
+  // Stary termin po przeniesieniu, którego partner jeszcze nie anulował (US-17). (DamianTchorzewski_72206)
+  previousExternalBookingId String?          @map("previous_external_booking_id")
+  rejectionReason           RejectionReason? @map("rejection_reason")
+  updatedAt                 DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 

@@ -302,7 +302,7 @@ describe('Stay, partners and vouchers', () => {
       expect(training.body.status).toBe('CONFIRMED');
       const call = mocks.calls.find((item) => item.path === '/bookings')!;
       expect(call.body).toMatchObject({
-        reference: plan.massage,
+        reference: `${plan.massage}:${new Date(at(1, 10)).toISOString()}`,
         hotelReservationNumber: 'R-000002',
         voucherCode: 'TEST-C-0001',
         guest: { lastName: 'Nowak' },
@@ -469,6 +469,95 @@ describe('Stay, partners and vouchers', () => {
       expect(
         mocks.calls.filter((call) => call.path.endsWith('/cancel')),
       ).toHaveLength(1);
+    });
+  });
+
+  describe('moving a service (US-17)', () => {
+    const move = (id: string, serviceId: string, scheduledAt: string) =>
+      post(`/reservations/${id}/services/${serviceId}/reschedule`, {
+        scheduledAt,
+      });
+    const booked = async () => {
+      const plan = await planOf('R-000002');
+      await bookService(plan.id, plan.massage, at(1, 10)).expect(200);
+      return plan;
+    };
+    const partnerCalls = () =>
+      mocks.calls
+        .filter((call) => call.partner === 'a' && call.method === 'POST')
+        .map((call) => call.path);
+
+    it('books the new time before cancelling the old one', async () => {
+      const plan = await booked();
+      const { body } = await move(plan.id, plan.massage, at(1, 14)).expect(200);
+
+      expect(body).toMatchObject({
+        status: 'CONFIRMED',
+        scheduledAt: new Date(at(1, 14)).toISOString(),
+      });
+      expect(partnerCalls()).toEqual([
+        '/bookings',
+        '/bookings',
+        expect.stringMatching(/^\/bookings\/A-\d+\/cancel$/),
+      ]);
+      expect((await get('/retry-tasks')).body.items).toEqual([]);
+    });
+
+    it.each([
+      ['refuse', 409, 'SLOT_TAKEN'],
+      ['error', 503, 'PARTNER_UNAVAILABLE'],
+    ] as const)('keeps the old time on %s', async (mode, status, code) => {
+      const plan = await booked();
+      mocks.setMode('a', mode);
+      const { body } = await move(plan.id, plan.massage, at(1, 14)).expect(
+        status,
+      );
+      const after = await get(`/reservations/${plan.id}`);
+
+      expect(body.code).toBe(code);
+      expect(
+        (after.body.services as (Service & { scheduledAt: string })[])[0],
+      ).toMatchObject({
+        status: 'CONFIRMED',
+        scheduledAt: new Date(at(1, 10)).toISOString(),
+      });
+      expect(partnerCalls().some((path) => path.endsWith('/cancel'))).toBe(
+        false,
+      );
+    });
+
+    it('leaves a task when the old time cannot be cancelled', async () => {
+      const plan = await booked();
+      mocks.failNextCancel = true;
+      const moved = await move(plan.id, plan.massage, at(1, 14)).expect(200);
+      const again = await move(plan.id, plan.massage, at(1, 16)).expect(409);
+      const tasks = await get('/retry-tasks');
+      const done = await post(`/retry-tasks/moved:${plan.massage}/retry`);
+
+      expect(moved.body.status).toBe('CONFIRMED');
+      expect(again.body.code).toBe('INVALID_STATE');
+      expect(tasks.body.items).toMatchObject([
+        { id: `moved:${plan.massage}`, type: 'CANCEL_SERVICE', partner: 'A' },
+      ]);
+      expect(done.body).toMatchObject({ done: true, status: 'CONFIRMED' });
+      await move(plan.id, plan.massage, at(1, 16)).expect(200);
+    });
+
+    it('checks the window, conflicts and the state before calling the partner', async () => {
+      const plan = await booked();
+      await bookService(plan.id, plan.training, at(1, 12)).expect(200);
+      const callsBefore = mocks.calls.length;
+      const conflict = await move(plan.id, plan.massage, at(1, 12));
+      const outside = await move(plan.id, plan.massage, at(5, 12));
+      const same = await move(plan.id, plan.massage, at(1, 10));
+
+      expect(conflict.body.code).toBe('SERVICE_TIME_CONFLICT');
+      expect(outside.body.code).toBe('SERVICE_OUTSIDE_STAY');
+      expect(same.status).toBe(200);
+      expect(mocks.calls.length).toBe(callsBefore);
+      await cancelService(plan.id, plan.training).expect(200);
+      const notBooked = await move(plan.id, plan.training, at(1, 15));
+      expect(notBooked.body.code).toBe('INVALID_STATE');
     });
   });
 

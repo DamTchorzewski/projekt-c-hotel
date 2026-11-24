@@ -25,6 +25,14 @@ export class ServiceCancellation {
     }
   }
 
+  // Anuluje stary termin, który został po przeniesieniu usługi (US-17). (DamianTchorzewski_72206)
+  cancelPreviousAtPartner(service: PartnerServiceBooking): Promise<boolean> {
+    return this.cancelAtPartner({
+      ...service,
+      externalBookingId: service.previousExternalBookingId,
+    });
+  }
+
   async statusAfterStayCancellation(
     service: PartnerServiceBooking,
   ): Promise<ServiceStatus> {
