@@ -88,7 +88,11 @@ export class EnvironmentVariables {
 export function validateEnv(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const validated = plainToInstance(EnvironmentVariables, config);
+  // Pusta wartość w pliku .env znaczy to samo co jej brak. (DamianTchorzewski_72206)
+  const defined = Object.fromEntries(
+    Object.entries(config).filter(([, value]) => value !== ''),
+  );
+  const validated = plainToInstance(EnvironmentVariables, defined);
   const errors = validateSync(validated);
 
   if (errors.length > 0) {

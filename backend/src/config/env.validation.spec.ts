@@ -74,6 +74,13 @@ describe('validateEnv', () => {
     });
   });
 
+  it('treats an empty value as a missing one', () => {
+    expect(() =>
+      validateEnv({ ...validConfig, RECEPTION_PASSWORD_HASH: '' }),
+    ).not.toThrow();
+    expect(() => validateEnv({ DATABASE_URL: '' })).toThrow(/DATABASE_URL/);
+  });
+
   it('converts PORT from text to a number', () => {
     const env = validateEnv({ ...validConfig, PORT: '4000' });
 

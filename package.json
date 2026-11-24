@@ -10,7 +10,9 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "start": "node scripts/dev.mjs",
-    "db:up": "docker compose up -d --wait",
+    "env:new": "node scripts/env-new.mjs",
+    "reception:password": "node scripts/reception-password.mjs",
+    "db:up": "docker compose up -d --wait postgres",
     "db:stop": "docker compose stop",
     "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
     "test": "npm --prefix backend test && npm --prefix frontend test",

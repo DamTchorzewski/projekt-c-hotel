@@ -16,13 +16,16 @@ jobs:
     name: Backend checks
     runs-on: ubuntu-latest
 
-    # Baza dla testów integracyjnych. Dane logowania są takie same jak w docker-compose.yml. (DamianTchorzewski_72206)
+    # Baza dla testów integracyjnych istnieje tylko na czas tego zadania. (DamianTchorzewski_72206)
+    env:
+      TEST_DATABASE_URL: postgresql://hotel_user:ci_only@localhost:5432/hotel_c_test
+
     services:
       postgres:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: hotel_user
-          POSTGRES_PASSWORD: hotel_password
+          POSTGRES_PASSWORD: ci_only
           POSTGRES_DB: hotel_c_db
         ports:
           - 5432:5432
