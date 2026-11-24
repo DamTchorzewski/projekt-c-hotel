@@ -1,4 +1,4 @@
-# Środowisko lokalne projektu Hotel C: baza danych PostgreSQL. (DamianTchorzewski_72206)
+# Środowisko lokalne Hotelu C. Całość: docker compose up --build, sama baza: npm run db:up. (DamianTchorzewski_72206)
 # Hasło jest w pliku .env, który tworzy "npm run setup". (DamianTchorzewski_72206)
 
 services:
@@ -22,6 +22,56 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Atrapy partnerów A, B i D. (DamianTchorzewski_72206)
+  mocks:
+    build: ./backend
+    command: ["npm", "run", "mocks"]
+    environment:
+      MOCKS_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Przy starcie stosuje migracje, a dane startowe wczytuje tylko do pustej bazy. (DamianTchorzewski_72206)
+  backend:
+    build: ./backend
+    command:
+      - sh
+      - -c
+      - npx prisma migrate deploy && npm run db:seed && node dist/main.js
+    env_file: backend/.env
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hotel_user}:${POSTGRES_PASSWORD:?Run "npm run setup" first}@postgres:5432/${POSTGRES_DB:-hotel_c_db}
+      PARTNER_MOCKS_URL: http://mocks:4000
+      SEED_ONLY_IF_EMPTY: "true"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mocks:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/v1/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   hotel_c_data:

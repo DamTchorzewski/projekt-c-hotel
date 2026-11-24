@@ -21,4 +21,19 @@ z katalogu głównego (albo ręcznie `npm ci` w tym katalogu).
 | `npm run test:e2e`         | Testy e2e: walidacja, format błędów, kontrakt (baza jest atrapą) | nie      |
 | `npm run test:integration` | Testy na prawdziwym PostgreSQL (osobna baza `hotel_c_test`)   | tak         |
 | `npm run db:seed`          | Dane startowe z dokumentacji (typy pokoi, pokoje, rezerwacje)             | tak         |
+| `npm run mocks`            | Atrapy partnerów A, B i D na porcie 4000                      | nie         |
 | `npm run openapi:update`   | Odświeżenie `docs/openapi.yaml` po zmianie DTO lub endpointów | nie         |
+
+## Roboczy kontrakt partnerów
+
+Obowiązuje do uzgodnienia z zespołami A, B i D (DEC-06). Atrapy z `mocks/` działają według niego. Gdy ustalenia będą inne,
+zmieniamy adaptery w `src/modules/partners/`. Wszystkie żądania mają nagłówek `X-API-Key` i limit 5 s.
+
+| Partner | Operacja                                                               | Odpowiedź                                               |
+| ------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| A, B    | `GET /services`                                                        | `{items: [{id, name, description, durationMinutes, price, currency, imageUrl}]}` |
+| A, B    | `GET /slots?date=RRRR-MM-DD&serviceId=`                                | `{items: [{serviceId, startsAt}]}`                      |
+| A, B    | `POST /bookings` `{reference, serviceId, startsAt, hotelReservationNumber, voucherCode, guest}` | `201 {id}`, `409` gdy termin zajęty |
+| A, B    | `POST /bookings/{id}/cancel`                                           | `200`, `404` traktujemy jak anulowane                   |
+| D       | `POST /vouchers/verify` `{voucherCode, hotelReservationNumber}`        | `200 {valid}`, `404`, `409` lub `422` = nieważny        |
+| D       | `POST /vouchers/settle` `{voucherCode, hotelReservationNumber}`        | `200 {settled}`, powtórzenie nic nie zmienia            |

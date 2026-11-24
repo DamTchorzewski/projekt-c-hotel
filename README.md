@@ -4,7 +4,7 @@ Aplikacja webowa hotelu z projektu zespołowego C. Gość sam rezerwuje pobyt w 
 i plan pobytu, a hotel współpracuje przez REST API z systemami masaży (A), fitnessu (B) i voucherów (D).
 
 > **Status (24.11.2026):** gotowy jest prototyp wyszukiwarki pokoi (frontend, publikowany jako
-> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz fundament backendu z pierwszymi endpointami.
+> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz backend z pełnym API z dokumentacji (bez US-17).
 > Frontend nie korzysta jeszcze z API. Co jest w toku, pokazuje tablica projektu.
 
 ## Najważniejsze linki
@@ -56,9 +56,9 @@ Razem 33 historyjki: 22 Must, 5 Should, 1 Could i 5 Won't.
 | Co uruchamiasz     | Co musisz mieć                                                                                     |
 | ------------------ | -------------------------------------------------------------------------------------------------- |
 | Sam frontend       | Git, [Node.js 24](https://nodejs.org), wolny port 5173                                              |
-| Frontend + backend | to samo, uruchomiony [Docker Desktop](https://www.docker.com/products/docker-desktop/), wolne porty 3000 i 5432 |
+| Frontend + backend | to samo, uruchomiony [Docker Desktop](https://www.docker.com/products/docker-desktop/), wolne porty 3000, 4000 i 5432 |
 
-W Dockerze działa tylko baza PostgreSQL. Backend i frontend działają w Node.js.
+W Dockerze działa tylko baza PostgreSQL. Backend, frontend i atrapy partnerów działają w Node.js.
 
 ### Frontend + backend
 
@@ -71,7 +71,7 @@ npm start
 ```
 
 `npm run setup` uruchamiasz raz oraz po zmianach zależności lub migracji bazy. Tworzy pliki `.env`, uruchamia bazę,
-instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`. `Ctrl+C` zatrzymuje backend i frontend,
+instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`. `Ctrl+C` zatrzymuje wszystko poza bazą,
 a bazę zatrzymuje `npm run db:stop`.
 
 | Co sprawdzić     | Adres                                 | Oczekiwany wynik           |
@@ -86,13 +86,32 @@ Login recepcji to `recepcja`, a hasło `npm run setup` pokazuje jeden raz.
 | Polecenie (w katalogu głównym) | Co robi                                             |
 | ------------------------------ | --------------------------------------------------- |
 | `npm run setup`                | pierwsza konfiguracja                               |
-| `npm start`                    | baza, backend i frontend                            |
+| `npm start`                    | baza, backend, frontend i atrapy partnerów          |
 | `npm run reception:password`   | nowe hasło recepcji                                 |
 | `npm run env:new`              | nowe wszystkie klucze lokalne                       |
 | `npm test`                     | testy jednostkowe backendu i testy frontendu        |
 | `npm run test:integration`     | testy backendu na prawdziwej bazie `hotel_c_test`   |
 | `npm run lint`                 | sprawdzenie kodu                                    |
 | `npm run build`                | kompilacja backendu i frontendu                     |
+
+### Wszystko w Dockerze
+
+Po jednorazowym `npm run setup`, przy zatrzymanym `npm start`:
+
+```bash
+docker compose up --build
+```
+
+Adresy są takie same. Zatrzymanie: `Ctrl+C`, potem `docker compose stop`.
+
+### Atrapy partnerów A, B i D
+
+`npm start` uruchamia je pod `http://localhost:4000`. Prawdziwych partnerów włącza `USE_PARTNER_MOCKS=false` i adresy
+`PARTNER_*_URL` w `backend/.env`. Tryb atrapy (`ok`, `refuse`, `error`, `delay`) zmienisz tak:
+
+```bash
+curl -X POST http://localhost:4000/control -H "Content-Type: application/json" -d '{"partner":"b","mode":"delay"}'
+```
 
 ### Sam frontend
 
@@ -110,7 +129,7 @@ npm run dev
 | -------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `Docker is not running or does not respond`              | uruchom Docker Desktop i poczekaj, aż pokaże „running”                  |
 | Docker Desktop nie startuje po nagłym zamknięciu (Windows), w błędzie `The file cannot be accessed by the system` | zamknij Docker Desktop, zmień nazwy katalogów `%LOCALAPPDATA%\Docker\run` i `%LOCALAPPDATA%\docker-secrets-engine`, uruchom ponownie |
-| Zajęty port 3000 lub 5173                                | zamknij poprzednie `npm start`                                          |
+| Zajęty port 3000, 4000 lub 5173                          | zamknij poprzednie `npm start`                                          |
 | `401` przy logowaniu na konto `recepcja`                 | `npm run reception:password` i ponowne `npm start`                      |
 
 ### Jak frontend korzysta z API
@@ -120,14 +139,19 @@ npm run dev
   i `details`.
 - Żądania panelu recepcji wysyłaj z `credentials: 'include'`, bo sesja jest w ciasteczku.
 
-| Gotowe endpointy                                                    | Historyjka           | Dostęp       |
-| ------------------------------------------------------------------- | -------------------- | ------------ |
-| `GET /offers`, `GET /availability`                                  | US-02, US-03, US-04  | publiczny    |
-| `POST /portal/reservations`                                         | US-05                | publiczny    |
-| `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`             | US-27                | recepcja     |
-| `GET /rooms`                                                        | US-01                | recepcja     |
-| `POST /reservations`, `POST /reservations/{id}/cancel`              | US-08, część US-10   | recepcja     |
-| `GET /external/offers`, `GET /external/availability`                | US-21                | klucz API    |
+| Endpointy                                                                    | Historyjki               | Dostęp    |
+| ---------------------------------------------------------------------------- | ------------------------ | --------- |
+| `GET /offers`, `GET /availability`                                           | US-02, US-03, US-04      | publiczny |
+| `POST /portal/reservations`, `GET /portal/reservations/{number}`             | US-05, US-06             | publiczny |
+| `GET /partner-offers`                                                        | US-07                    | publiczny |
+| `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`                      | US-27                    | recepcja  |
+| `GET /rooms`                                                                 | US-01                    | recepcja  |
+| `/reservations`: lista, szczegóły, utworzenie, zmiana, anulowanie            | US-08 – US-12            | recepcja  |
+| `/reservations/{id}/services`: dodanie, rezerwacja terminu, anulowanie       | US-13 – US-16            | recepcja  |
+| `GET /partners/{A,B}/services`, `GET /partners/{A,B}/slots`                  | US-13, US-14             | recepcja  |
+| `POST /reservations/{id}/check-in`, `POST /reservations/{id}/check-out`      | US-18, US-19             | recepcja  |
+| `GET /retry-tasks`, `POST /retry-tasks/{id}/retry`                           | US-20                    | recepcja  |
+| `/external/offers`, `/external/availability`, `/external/reservations`       | US-21 – US-23            | klucz API |
 
 ## Struktura repozytorium
 
@@ -135,10 +159,11 @@ npm run dev
 .gitignore           pliki, które nie trafiają do repozytorium (np. .env)
 .github/workflows/   CI frontendu i publikacja wersji demo na GitHub Pages
 backend/             REST API (NestJS, Prisma)
+docker/              obraz frontendu dla Docker Compose
 docs/openapi.yaml    kontrakt API
 frontend/            aplikacja React
 scripts/             skrypty npm run setup i npm start
-docker-compose.yml   lokalna baza PostgreSQL
+docker-compose.yml   całe środowisko lokalne
 README.md            ten plik
 ```
 
