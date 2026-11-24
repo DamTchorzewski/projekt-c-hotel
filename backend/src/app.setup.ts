@@ -78,6 +78,8 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     .addTag('portal', 'Guest portal')
     .addTag('rooms', 'Room register for the reception')
     .addTag('reservations', 'Reservations made by the reception')
+    .addTag('partners', 'Services of partners A and B')
+    .addTag('retry-tasks', 'Operations to retry')
     .addTag('external', 'Endpoints for partner systems')
     .build();
 

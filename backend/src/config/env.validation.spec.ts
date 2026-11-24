@@ -32,6 +32,7 @@ describe('validateEnv', () => {
           RECEPTION_LOGIN: 'recepcja',
           RECEPTION_PASSWORD_HASH: `$2b$10$${'a'.repeat(53)}`,
           SESSION_SECRET: 's'.repeat(32),
+          USE_PARTNER_MOCKS: 'true',
         }),
       ).not.toThrow();
     });
@@ -72,6 +73,21 @@ describe('validateEnv', () => {
         validateEnv({ ...validConfig, SESSION_SECRET: 'short' }),
       ).toThrow(/SESSION_SECRET/);
     });
+  });
+
+  describe('partners', () => {
+    it('uses mocks by default outside production', () => {
+      expect(() => validateEnv(validConfig)).not.toThrow();
+    });
+
+    it.each([{ USE_PARTNER_MOCKS: 'false' }, { NODE_ENV: 'production' }])(
+      'requires partner addresses for %j',
+      (config) => {
+        expect(() => validateEnv({ ...validConfig, ...config })).toThrow(
+          /PARTNER_A_URL.*PARTNER_B_URL.*PARTNER_D_URL/,
+        );
+      },
+    );
   });
 
   it('treats an empty value as a missing one', () => {

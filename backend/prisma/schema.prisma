@@ -93,22 +93,24 @@ model Room {
 }
 
 model Reservation {
-  id             String            @id @default(uuid()) @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
   // Czytelny numer R-000123 nadaje sekwencja w bazie. (DamianTchorzewski_72206)
-  number         String            @unique @default(dbgenerated("('R-'::text || lpad((nextval('reservation_number_seq'::regclass))::text, 6, '0'::text))"))
-  roomId         String            @map("room_id") @db.Uuid
-  checkIn        DateTime          @map("check_in") @db.Date
-  checkOut       DateTime          @map("check_out") @db.Date
-  guestsCount    Int               @map("guests_count") @db.SmallInt
-  totalPrice     Decimal           @map("total_price") @db.Decimal(10, 2)
-  status         ReservationStatus @default(CONFIRMED)
-  source         ReservationSource
-  voucherCode    String?           @map("voucher_code")
-  voucherStatus  VoucherStatus     @default(NONE) @map("voucher_status")
-  idempotencyKey String?           @unique @map("idempotency_key")
-  notes          String?
-  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  number          String            @unique @default(dbgenerated("('R-'::text || lpad((nextval('reservation_number_seq'::regclass))::text, 6, '0'::text))"))
+  roomId          String            @map("room_id") @db.Uuid
+  checkIn         DateTime          @map("check_in") @db.Date
+  checkOut        DateTime          @map("check_out") @db.Date
+  guestsCount     Int               @map("guests_count") @db.SmallInt
+  totalPrice      Decimal           @map("total_price") @db.Decimal(10, 2)
+  status          ReservationStatus @default(CONFIRMED)
+  source          ReservationSource
+  voucherCode     String?           @map("voucher_code")
+  voucherStatus   VoucherStatus     @default(NONE) @map("voucher_status")
+  idempotencyKey  String?           @unique @map("idempotency_key")
+  // Skrót treści żądania z tym kluczem (RB-17). (DamianTchorzewski_72206)
+  idempotencyHash String?           @map("idempotency_hash")
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
   room            Room                    @relation(fields: [roomId], references: [id])
   guests          ReservationGuest[]

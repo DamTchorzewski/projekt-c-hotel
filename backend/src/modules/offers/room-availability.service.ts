@@ -23,6 +23,8 @@ export class RoomAvailabilityService {
     checkOut: string,
     where: Prisma.RoomWhereInput = {},
     client: Prisma.TransactionClient = this.prisma,
+    // Zmieniana rezerwacja nie koliduje sama ze sobą. (DamianTchorzewski_72206)
+    ignoredReservationId?: string,
   ): Promise<Room[]> {
     return client.room.findMany({
       where: {
@@ -30,6 +32,9 @@ export class RoomAvailabilityService {
         isActive: true,
         reservations: {
           none: {
+            ...(ignoredReservationId
+              ? { id: { not: ignoredReservationId } }
+              : {}),
             status: { in: BLOCKING_STATUSES },
             checkIn: { lt: parseDateOnly(checkOut) },
             checkOut: { gt: parseDateOnly(checkIn) },

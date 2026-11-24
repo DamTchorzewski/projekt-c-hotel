@@ -359,11 +359,11 @@ describe('Hotel API on seed data', () => {
       expect(codes((await availability(0, 1, 2)).body)).toContain('TWN');
     });
 
-    it('leaves a confirmed partner service for a retry', async () => {
+    it('leaves a confirmed partner service for a retry when the partner is down', async () => {
       const id = await idOf('R-000002');
       await prisma.partnerServiceBooking.updateMany({
         where: { reservationId: id, partnerType: 'MASSAGE_A' },
-        data: { status: 'CONFIRMED' },
+        data: { status: 'CONFIRMED', externalBookingId: 'A-1' },
       });
 
       const { body } = await cancel(id).expect(200);

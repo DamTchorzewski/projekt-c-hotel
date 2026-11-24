@@ -13,6 +13,7 @@ import {
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { OffersModule } from './modules/offers/offers.module.js';
+import { PartnersModule } from './modules/partners/partners.module.js';
 import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { RoomsModule } from './modules/rooms/rooms.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -45,6 +46,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AuthModule,
     OffersModule,
     RoomsModule,
+    PartnersModule,
     ReservationsModule,
   ],
   providers: [
