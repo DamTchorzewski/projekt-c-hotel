@@ -3,10 +3,9 @@
 Aplikacja webowa hotelu z projektu zespołowego C. Gość sam rezerwuje pobyt w portalu, recepcja obsługuje rezerwacje
 i plan pobytu, a hotel współpracuje przez REST API z systemami masaży (A), fitnessu (B) i voucherów (D).
 
-> **Status (24.11.2026):** na `main` jest prototyp wyszukiwarki pokoi (frontend), publikowany automatycznie jako
-> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/). Backend czeka na scalenie w Pull Requestach
-> [#3](https://github.com/DamTchorzewski/projekt-c-hotel/pull/3) –
-> [#6](https://github.com/DamTchorzewski/projekt-c-hotel/pull/6).
+> **Status (24.11.2026):** gotowy jest prototyp wyszukiwarki pokoi (frontend, publikowany jako
+> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz fundament backendu z pierwszymi endpointami.
+> Frontend nie korzysta jeszcze z API. Co jest w toku, pokazuje tablica projektu.
 
 ## Najważniejsze linki
 
@@ -15,6 +14,7 @@ i plan pobytu, a hotel współpracuje przez REST API z systemami masaży (A), fi
 | Dokumentacja (wersja 0.3) | [wspólny plik Word na SharePoint][docs] (logowanie kontem uczelnianym)                        |
 | Zadania i sprinty         | [tablica projektu](https://github.com/users/DamTchorzewski/projects/2) (dostęp dla zespołu)   |
 | Wersja demo               | [damtchorzewski.github.io/projekt-c-hotel](https://damtchorzewski.github.io/projekt-c-hotel/) |
+| Kontrakt API              | [docs/openapi.yaml](docs/openapi.yaml), po uruchomieniu także Swagger                         |
 
 Zakres, reguły biznesowe i kontrakt API opisuje dokumentacja. Zmianę zakresu wprowadzamy najpierw w dokumencie,
 potem na tablicy, a na końcu w kodzie.
@@ -44,49 +44,28 @@ Razem 33 historyjki: 22 Must, 5 Should, 1 Could i 5 Won't.
 
 ## Technologie
 
-| Obszar       | Technologia                                              | Stan                        |
-| ------------ | -------------------------------------------------------- | --------------------------- |
-| Frontend     | React 19, TypeScript, Vite                               | na `main` (prototyp)        |
-| Backend      | NestJS, Prisma, PostgreSQL 16, Swagger (OpenAPI)         | w Pull Requestach           |
-| Testy        | Vitest, React Testing Library                            | frontend na `main`          |
-| CI i hosting | GitHub Actions, GitHub Pages (wersja demo frontendu)     | na `main`                   |
+| Obszar       | Technologia                                              |
+| ------------ | -------------------------------------------------------- |
+| Frontend     | React 19, TypeScript, Vite                               |
+| Backend      | NestJS, Prisma, PostgreSQL 16, Swagger (OpenAPI)         |
+| Testy        | Vitest, React Testing Library, Supertest                 |
+| CI i hosting | GitHub Actions, GitHub Pages (wersja demo frontendu)     |
 
 ## Uruchomienie
 
-### Frontend (gałąź `main`)
-
-Potrzebne: Git i [Node.js 24](https://nodejs.org) (ta sama wersja co w CI).
+Potrzebne: Git, [Node.js 24](https://nodejs.org) (ta sama wersja co w CI), uruchomiony
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) oraz wolne porty 3000, 5173 i 5432.
 
 ```bash
 git clone https://github.com/DamTchorzewski/projekt-c-hotel.git
-cd projekt-c-hotel/frontend
-npm ci
-npm run dev
-```
-
-Aplikacja działa pod adresem <http://localhost:5173>. Zatrzymanie: `Ctrl+C`.
-
-| Polecenie (w `frontend/`) | Co robi                                                 |
-| ------------------------- | ------------------------------------------------------- |
-| `npm run dev`             | uruchamia aplikację lokalnie z odświeżaniem po zmianach |
-| `npm test`                | uruchamia testy automatyczne                            |
-| `npm run lint`            | sprawdza kod (ESLint)                                   |
-| `npm run build`           | buduje wersję produkcyjną do `frontend/dist/`           |
-
-### Cała aplikacja z backendem (gałąź robocza)
-
-Do czasu scalenia Pull Requestów całość jest na gałęzi `feature/HOTEL-5-bookings-service`. Dodatkowo potrzebny jest
-uruchomiony [Docker Desktop](https://www.docker.com/products/docker-desktop/) i wolne porty 3000, 5173 i 5432.
-Polecenia wykonujesz w katalogu głównym repozytorium:
-
-```bash
-git switch feature/HOTEL-5-bookings-service
+cd projekt-c-hotel
+git switch develop
 npm run setup
 npm start
 ```
 
-`npm run setup` wystarczy raz: tworzy pliki `.env`, uruchamia bazę, instaluje zależności i wczytuje dane
-demonstracyjne. Na co dzień używasz tylko `npm start`.
+`npm run setup` uruchamiasz raz oraz po zmianach zależności lub migracji bazy. Tworzy pliki `.env`, uruchamia bazę,
+instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`, a kończysz skrótem `Ctrl+C`.
 
 | Co sprawdzić     | Adres                                 | Oczekiwany wynik           |
 | ---------------- | ------------------------------------- | -------------------------- |
@@ -94,12 +73,47 @@ demonstracyjne. Na co dzień używasz tylko `npm start`.
 | Stan API i bazy  | <http://localhost:3000/api/v1/health> | `status: "ok"`             |
 | Dokumentacja API | <http://localhost:3000/api/docs>      | Swagger z listą endpointów |
 
+Lokalne konto recepcji: login `recepcja`, hasło `hotel-dev` (tylko do pracy na własnym komputerze, plik
+`backend/.env.example`).
+
+| Polecenie (w katalogu głównym) | Co robi                                             |
+| ------------------------------ | --------------------------------------------------- |
+| `npm run setup`                | pierwsza konfiguracja                               |
+| `npm start`                    | baza, backend i frontend                            |
+| `npm test`                     | testy jednostkowe backendu i testy frontendu        |
+| `npm run test:integration`     | testy backendu na prawdziwej bazie `hotel_c_test`   |
+| `npm run lint`                 | sprawdzenie kodu                                    |
+| `npm run build`                | kompilacja backendu i frontendu                     |
+
+Masz plik `backend/.env` sprzed wersji 0.3? Dopisz do niego zmienne `RECEPTION_LOGIN`, `RECEPTION_PASSWORD_HASH`
+i `SESSION_SECRET` z `backend/.env.example`. Baza korzysta z nowego wolumenu, więc stare dane lokalne nie przeszkadzają.
+
+### Jak frontend korzysta z API
+
+- Adres bazowy: `http://localhost:3000/api/v1`. CORS dopuszcza `http://localhost:5173`.
+- Pola, przykłady i kody błędów są w [docs/openapi.yaml](docs/openapi.yaml). Każdy błąd ma pola `code`, `message`
+  i `details`.
+- Żądania panelu recepcji wysyłaj z `credentials: 'include'`, bo sesja jest w ciasteczku.
+
+| Gotowe endpointy                                                    | Historyjka           | Dostęp       |
+| ------------------------------------------------------------------- | -------------------- | ------------ |
+| `GET /offers`, `GET /availability`                                  | US-02, US-03, US-04  | publiczny    |
+| `POST /portal/reservations`                                         | US-05                | publiczny    |
+| `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`             | US-27                | recepcja     |
+| `GET /rooms`                                                        | US-01                | recepcja     |
+| `POST /reservations`, `POST /reservations/{id}/cancel`              | US-08, część US-10   | recepcja     |
+| `GET /external/offers`, `GET /external/availability`                | US-21                | klucz API    |
+
 ## Struktura repozytorium
 
 ```text
 .gitignore           pliki, które nie trafiają do repozytorium (np. .env)
 .github/workflows/   CI frontendu i publikacja wersji demo na GitHub Pages
+backend/             REST API (NestJS, Prisma)
+docs/openapi.yaml    kontrakt API
 frontend/            aplikacja React
+scripts/             skrypty npm run setup i npm start
+docker-compose.yml   lokalna baza PostgreSQL
 README.md            ten plik
 ```
 

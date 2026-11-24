@@ -1,0 +1,1128 @@
+openapi: 3.1.0
+paths:
+  /api/v1/health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponseDto"
+        "503":
+          description: The database is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Check application and database status
+      tags:
+        - health
+  /api/v1/auth/login:
+    post:
+      description: Sets the HttpOnly session cookie hotel_session, valid for 8 hours.
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDto"
+        "400":
+          description: Invalid request body (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Invalid login or password (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "429":
+          description: Too many attempts from one address (TOO_MANY_REQUESTS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Log in to the reception panel
+      tags:
+        - auth
+  /api/v1/auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters: []
+      responses:
+        "204":
+          description: The session cookie is cleared
+      summary: Log out and clear the session cookie
+      tags:
+        - auth
+  /api/v1/auth/me:
+    get:
+      operationId: AuthController_me
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDto"
+        "401":
+          description: No valid session (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Check the current reception session
+      tags:
+        - auth
+  /api/v1/offers:
+    get:
+      operationId: OffersController_findOffers
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OffersResponseDto"
+      summary: List room types (US-03)
+      tags:
+        - offers
+  /api/v1/availability:
+    get:
+      description: Returns room types with at least one room free in the whole period. With a reception session the response also contains the numbers of the free rooms.
+      operationId: OffersController_findAvailability
+      parameters:
+        - name: checkIn
+          required: true
+          in: query
+          description: Arrival date, YYYY-MM-DD. Must not be in the past
+          schema:
+            format: date
+            example: 2026-12-01
+            type: string
+        - name: checkOut
+          required: true
+          in: query
+          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
+          schema:
+            format: date
+            example: 2026-12-04
+            type: string
+        - name: guests
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            example: 2
+            type: number
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponseDto"
+        "400":
+          description: Invalid query (VALIDATION_ERROR) or stay dates (INVALID_DATES)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Search free room types with the price of the stay (US-02)
+      tags:
+        - offers
+  /api/v1/external/offers:
+    get:
+      operationId: ExternalOffersController_findOffers
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OffersResponseDto"
+        "401":
+          description: Missing or invalid API key (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "429":
+          description: Too many requests from one address (TOO_MANY_REQUESTS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - api-key: []
+      summary: List room types for partner systems (US-21)
+      tags:
+        - external
+  /api/v1/external/availability:
+    get:
+      operationId: ExternalOffersController_findAvailability
+      parameters:
+        - name: checkIn
+          required: true
+          in: query
+          description: Arrival date, YYYY-MM-DD. Must not be in the past
+          schema:
+            format: date
+            example: 2026-12-01
+            type: string
+        - name: checkOut
+          required: true
+          in: query
+          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
+          schema:
+            format: date
+            example: 2026-12-04
+            type: string
+        - name: guests
+          required: true
+          in: query
+          schema:
+            minimum: 1
+            example: 2
+            type: number
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponseDto"
+        "400":
+          description: Invalid query (VALIDATION_ERROR) or stay dates (INVALID_DATES)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Missing or invalid API key (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "429":
+          description: Too many requests from one address (TOO_MANY_REQUESTS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - api-key: []
+      summary: Search free room types for partner systems (US-21)
+      tags:
+        - external
+  /api/v1/rooms:
+    get:
+      operationId: RoomsController_findAll
+      parameters:
+        - name: type
+          required: false
+          in: query
+          description: Room type code
+          schema:
+            example: DBL
+            type: string
+        - name: status
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/RoomStatus"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomsResponseDto"
+        "400":
+          description: Invalid query (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: List rooms with the status for today, read only (US-01)
+      tags:
+        - rooms
+  /api/v1/portal/reservations:
+    post:
+      operationId: PortalReservationsController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePortalReservationDto"
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationConfirmationDto"
+        "400":
+          description: VALIDATION_ERROR, INVALID_DATES or CAPACITY_EXCEEDED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: No free room of the given type (ROOM_NOT_AVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Book a stay in the guest portal (US-05)
+      tags:
+        - portal
+  /api/v1/reservations:
+    post:
+      operationId: ReservationsController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReceptionReservationDto"
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDto"
+        "400":
+          description: VALIDATION_ERROR, INVALID_DATES or CAPACITY_EXCEEDED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The room or room type is not free (ROOM_NOT_AVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Book a stay at the reception (US-08)
+      tags:
+        - reservations
+  /api/v1/reservations/{id}/cancel:
+    post:
+      description: Confirmed partner services get the CANCEL_RETRY status until partner adapters are available (US-26).
+      operationId: ReservationsController_cancel
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The stay has started or ended (INVALID_STATE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Cancel a reservation, idempotent (US-10)
+      tags:
+        - reservations
+info:
+  title: Hotel C REST API
+  description: "Hotel system API: guest portal, reception panel and endpoints for partner systems. Follows the project documentation 0.3."
+  version: 0.3.0
+  contact: {}
+tags:
+  - name: health
+    description: Application and database status
+  - name: auth
+    description: Reception login
+  - name: offers
+    description: Room types and availability
+  - name: portal
+    description: Guest portal
+  - name: rooms
+    description: Room register for the reception
+  - name: reservations
+    description: Reservations made by the reception
+  - name: external
+    description: Endpoints for partner systems
+servers:
+  - url: http://localhost:3000
+    description: Local development
+components:
+  securitySchemes:
+    api-key:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    reception-session:
+      type: apiKey
+      in: cookie
+      name: hotel_session
+  schemas:
+    HealthResponseDto:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+          example: ok
+        database:
+          type: string
+          enum:
+            - up
+          example: up
+        timestamp:
+          type: string
+          format: date-time
+          example: 2026-11-08T15:30:00.000Z
+      required:
+        - status
+        - database
+        - timestamp
+    ApiErrorCode:
+      type: string
+      enum:
+        - BAD_REQUEST
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - NOT_FOUND
+        - CONFLICT
+        - UNPROCESSABLE_ENTITY
+        - TOO_MANY_REQUESTS
+        - INTERNAL_ERROR
+        - NOT_IMPLEMENTED
+        - SERVICE_UNAVAILABLE
+        - VALIDATION_ERROR
+        - INVALID_DATES
+        - CAPACITY_EXCEEDED
+        - ROOM_NOT_AVAILABLE
+        - INVALID_STATE
+      description: Stable machine-readable error code
+    ErrorDetailDto:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Path of the invalid field, using dots for nested objects
+          example: guest.email
+        message:
+          type: string
+          description: What is wrong with the field
+          example: email must be an email
+      required:
+        - field
+        - message
+    ErrorResponseDto:
+      type: object
+      properties:
+        statusCode:
+          type: number
+          description: HTTP status code
+          example: 409
+        error:
+          type: string
+          description: HTTP reason phrase
+          example: Conflict
+        code:
+          description: Stable machine-readable error code
+          example: ROOM_NOT_AVAILABLE
+          allOf:
+            - $ref: "#/components/schemas/ApiErrorCode"
+        message:
+          type: string
+          description: Human-readable description of the problem
+          example: The room is not available for the selected dates.
+        details:
+          description: Per-field problems, empty when the error is not field related
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorDetailDto"
+        timestamp:
+          type: string
+          format: date-time
+          example: 2026-11-08T15:30:00.000Z
+        path:
+          type: string
+          description: Requested path without the query string
+          example: /api/v1/reservations
+      required:
+        - statusCode
+        - error
+        - code
+        - message
+        - details
+        - timestamp
+        - path
+    LoginDto:
+      type: object
+      properties:
+        login:
+          type: string
+          maxLength: 100
+          example: recepcja
+        password:
+          type: string
+          maxLength: 200
+          example: your-password
+      required:
+        - login
+        - password
+    SessionDto:
+      type: object
+      properties:
+        login:
+          type: string
+          example: recepcja
+      required:
+        - login
+    RoomTypeDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Room type code
+          example: DBL
+        name:
+          type: string
+          example: Pokój dwuosobowy
+        description:
+          type: string
+          example: Pokój z łóżkiem małżeńskim i balkonem.
+        maxCapacity:
+          type: number
+          minimum: 1
+          maximum: 6
+          example: 2
+        amenities:
+          example:
+            - TV
+            - Wi-Fi
+            - balkon
+          type: array
+          items:
+            type: string
+        pricePerNight:
+          type: number
+          description: Price per night
+          example: 250
+        currency:
+          type: string
+          example: PLN
+        imageUrl:
+          type: string
+          format: uri
+          example: https://picsum.photos/seed/hotel-c-dbl/800/600
+      required:
+        - code
+        - name
+        - description
+        - maxCapacity
+        - amenities
+        - pricePerNight
+        - currency
+        - imageUrl
+    OffersResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomTypeDto"
+      required:
+        - items
+    AvailableRoomTypeDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Room type code
+          example: DBL
+        name:
+          type: string
+          example: Pokój dwuosobowy
+        description:
+          type: string
+          example: Pokój z łóżkiem małżeńskim i balkonem.
+        maxCapacity:
+          type: number
+          minimum: 1
+          maximum: 6
+          example: 2
+        amenities:
+          example:
+            - TV
+            - Wi-Fi
+            - balkon
+          type: array
+          items:
+            type: string
+        pricePerNight:
+          type: number
+          description: Price per night
+          example: 250
+        currency:
+          type: string
+          example: PLN
+        imageUrl:
+          type: string
+          format: uri
+          example: https://picsum.photos/seed/hotel-c-dbl/800/600
+        totalPrice:
+          type: number
+          description: Cost of the whole stay
+          example: 750
+        availableRooms:
+          type: number
+          description: Number of free rooms
+          example: 1
+        roomNumbers:
+          description: Numbers of the free rooms, only for the reception session
+          example:
+            - "103"
+          type: array
+          items:
+            type: string
+      required:
+        - code
+        - name
+        - description
+        - maxCapacity
+        - amenities
+        - pricePerNight
+        - currency
+        - imageUrl
+        - totalPrice
+        - availableRooms
+    AvailabilityResponseDto:
+      type: object
+      properties:
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        guests:
+          type: number
+          example: 2
+        nights:
+          type: number
+          example: 3
+        items:
+          description: Room types with at least one free room. May be empty
+          type: array
+          items:
+            $ref: "#/components/schemas/AvailableRoomTypeDto"
+      required:
+        - checkIn
+        - checkOut
+        - guests
+        - nights
+        - items
+    RoomStatus:
+      type: string
+      enum:
+        - FREE
+        - OCCUPIED
+        - DISABLED
+    ReservationStatus:
+      type: string
+      enum:
+        - CONFIRMED
+        - CHECKED_IN
+        - COMPLETED
+        - CANCELLED
+    RoomReservationDto:
+      type: object
+      properties:
+        number:
+          type: string
+          example: R-000001
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ReservationStatus"
+      required:
+        - number
+        - checkIn
+        - checkOut
+        - status
+    RoomDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomNumber:
+          type: string
+          example: "102"
+        typeCode:
+          type: string
+          example: DBL
+        typeName:
+          type: string
+          example: Pokój dwuosobowy
+        maxCapacity:
+          type: number
+          example: 2
+        pricePerNight:
+          type: number
+          example: 250
+        currency:
+          type: string
+          example: PLN
+        amenities:
+          example:
+            - TV
+            - Wi-Fi
+            - balkon
+          type: array
+          items:
+            type: string
+        status:
+          description: Status for today
+          allOf:
+            - $ref: "#/components/schemas/RoomStatus"
+        currentReservationNumber:
+          type:
+            - string
+            - "null"
+          description: Number of the reservation that occupies the room today
+          example: R-000001
+        upcomingReservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomReservationDto"
+      required:
+        - id
+        - roomNumber
+        - typeCode
+        - typeName
+        - maxCapacity
+        - pricePerNight
+        - currency
+        - amenities
+        - status
+        - currentReservationNumber
+        - upcomingReservations
+    RoomsResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomDto"
+      required:
+        - items
+    GuestDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+          example: Anna
+        lastName:
+          type: string
+          maxLength: 100
+          example: Kowalska
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: anna.kowalska@example.com
+        phone:
+          type: string
+          description: Digits with an optional leading plus. Spaces and hyphens are allowed, 7 to 20 characters
+          example: "+48123456789"
+      required:
+        - firstName
+        - lastName
+        - email
+        - phone
+    CreatePortalReservationDto:
+      type: object
+      properties:
+        roomTypeCode:
+          type: string
+          description: Room type code
+          example: DBL
+        checkIn:
+          type: string
+          description: Arrival date, YYYY-MM-DD. Must not be in the past
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
+          format: date
+          example: 2026-12-04
+        guestsCount:
+          type: number
+          description: Must not exceed the capacity of the room type
+          minimum: 1
+          example: 2
+        guest:
+          $ref: "#/components/schemas/GuestDto"
+        notes:
+          type: string
+          maxLength: 1000
+          example: Późny przyjazd
+      required:
+        - roomTypeCode
+        - checkIn
+        - checkOut
+        - guestsCount
+        - guest
+    ReservationConfirmationDto:
+      type: object
+      properties:
+        number:
+          type: string
+          example: R-000123
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ReservationStatus"
+        roomTypeCode:
+          type: string
+          example: DBL
+        roomTypeName:
+          type: string
+          example: Pokój dwuosobowy
+        roomNumber:
+          type: string
+          description: Assigned room
+          example: "103"
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        nights:
+          type: number
+          example: 3
+        guestsCount:
+          type: number
+          example: 2
+        totalPrice:
+          type: number
+          example: 750
+        currency:
+          type: string
+          example: PLN
+      required:
+        - number
+        - status
+        - roomTypeCode
+        - roomTypeName
+        - roomNumber
+        - checkIn
+        - checkOut
+        - nights
+        - guestsCount
+        - totalPrice
+        - currency
+    CreateReceptionReservationDto:
+      type: object
+      properties:
+        roomTypeCode:
+          type: string
+          description: Room type code
+          example: DBL
+        checkIn:
+          type: string
+          description: Arrival date, YYYY-MM-DD. Must not be in the past
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
+          format: date
+          example: 2026-12-04
+        guestsCount:
+          type: number
+          description: Must not exceed the capacity of the room type
+          minimum: 1
+          example: 2
+        guest:
+          $ref: "#/components/schemas/GuestDto"
+        notes:
+          type: string
+          maxLength: 1000
+          example: Późny przyjazd
+        roomId:
+          type: string
+          description: A specific room of the given type. Without it the system assigns the free room with the lowest number
+          format: uuid
+      required:
+        - roomTypeCode
+        - checkIn
+        - checkOut
+        - guestsCount
+        - guest
+    ReservationSource:
+      type: string
+      enum:
+        - PORTAL
+        - RECEPTION
+        - PARTNER_D
+    VoucherStatus:
+      type: string
+      enum:
+        - NONE
+        - PENDING_VERIFICATION
+        - VERIFIED
+        - INVALID
+        - SETTLED
+        - SETTLEMENT_RETRY
+    ReservationGuestDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: Anna
+        lastName:
+          type: string
+          example: Kowalska
+        email:
+          type: string
+          format: email
+          example: anna.kowalska@example.com
+        phone:
+          type: string
+          example: "+48123456789"
+      required:
+        - firstName
+        - lastName
+        - email
+        - phone
+    PartnerType:
+      type: string
+      enum:
+        - MASSAGE_A
+        - TRAINING_B
+    ServiceSource:
+      type: string
+      enum:
+        - PACKAGE
+        - EXTRA
+    ServiceStatus:
+      type: string
+      enum:
+        - TO_ORDER
+        - CONFIRMED
+        - REJECTED
+        - CANCELLED
+        - CANCEL_RETRY
+    RejectionReason:
+      type: string
+      enum:
+        - SLOT_TAKEN
+        - PARTNER_UNAVAILABLE
+        - PARTNER_ERROR
+    StayServiceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        partnerType:
+          allOf:
+            - $ref: "#/components/schemas/PartnerType"
+        source:
+          allOf:
+            - $ref: "#/components/schemas/ServiceSource"
+        serviceName:
+          type: string
+          example: Masaż relaksacyjny
+        price:
+          type:
+            - number
+            - "null"
+          example: 180
+        scheduledAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        durationMinutes:
+          type:
+            - number
+            - "null"
+          example: 60
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ServiceStatus"
+        rejectionReason:
+          anyOf:
+            - $ref: "#/components/schemas/RejectionReason"
+            - type: "null"
+      required:
+        - id
+        - partnerType
+        - source
+        - serviceName
+        - price
+        - scheduledAt
+        - durationMinutes
+        - status
+        - rejectionReason
+    ReservationDto:
+      type: object
+      properties:
+        number:
+          type: string
+          example: R-000123
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ReservationStatus"
+        roomTypeCode:
+          type: string
+          example: DBL
+        roomTypeName:
+          type: string
+          example: Pokój dwuosobowy
+        roomNumber:
+          type: string
+          description: Assigned room
+          example: "103"
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        nights:
+          type: number
+          example: 3
+        guestsCount:
+          type: number
+          example: 2
+        totalPrice:
+          type: number
+          example: 750
+        currency:
+          type: string
+          example: PLN
+        id:
+          type: string
+          format: uuid
+        source:
+          allOf:
+            - $ref: "#/components/schemas/ReservationSource"
+        voucherStatus:
+          allOf:
+            - $ref: "#/components/schemas/VoucherStatus"
+        voucherCode:
+          type:
+            - string
+            - "null"
+          example: null
+        notes:
+          type:
+            - string
+            - "null"
+          example: Późny przyjazd
+        guest:
+          anyOf:
+            - $ref: "#/components/schemas/ReservationGuestDto"
+            - type: "null"
+        services:
+          description: Stay plan in chronological order, unscheduled items last
+          type: array
+          items:
+            $ref: "#/components/schemas/StayServiceDto"
+      required:
+        - number
+        - status
+        - roomTypeCode
+        - roomTypeName
+        - roomNumber
+        - checkIn
+        - checkOut
+        - nights
+        - guestsCount
+        - totalPrice
+        - currency
+        - id
+        - source
+        - voucherStatus
+        - voucherCode
+        - notes
+        - guest
+        - services
