@@ -107,7 +107,7 @@ npm run dev
 | Objaw                                                    | Rozwiązanie                                                             |
 | -------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `Docker is not running or does not respond`              | uruchom Docker Desktop i poczekaj, aż pokaże „running”                  |
-| Docker Desktop nie startuje po nagłym zamknięciu (Windows), w błędzie `The file cannot be accessed by the system` | zamknij Docker Desktop, zmień nazwy katalogów `%LOCALAPPDATA%\Dockerun` i `%LOCALAPPDATA%\docker-secrets-engine`, uruchom ponownie |
+| Docker Desktop nie startuje po nagłym zamknięciu (Windows), w błędzie `The file cannot be accessed by the system` | zamknij Docker Desktop, zmień nazwy katalogów `%LOCALAPPDATA%\Docker\run` i `%LOCALAPPDATA%\docker-secrets-engine`, uruchom ponownie |
 | Zajęty port 3000 lub 5173                                | zamknij poprzednie `npm start`                                          |
 | `401` przy logowaniu na konto `recepcja`                 | do starego `backend/.env` dopisz `RECEPTION_LOGIN`, `RECEPTION_PASSWORD_HASH` i `SESSION_SECRET` z `backend/.env.example` |
 
