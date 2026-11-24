@@ -1,0 +1,16 @@
+# Lokalne zmienne środowiskowe nie mogą trafić do repozytorium. (DamianTchorzewski_72206)
+.env
+.env.*
+!.env.example
+
+# Zależności, wyniki kompilacji i pliki generowane. (DamianTchorzewski_72206)
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+backend/src/generated/
+
+# Logi i pliki systemowe. (DamianTchorzewski_72206)
+*.log
+.DS_Store
+.idea/
