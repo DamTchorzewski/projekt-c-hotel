@@ -6,6 +6,7 @@ import {
   SwaggerModule,
   type OpenAPIObject,
 } from '@nestjs/swagger';
+import helmet from 'helmet';
 import {
   API_KEY_HEADER,
   API_KEY_SECURITY_NAME,
@@ -24,6 +25,18 @@ export const SWAGGER_PATH = 'api/docs';
 export function setupApp(app: INestApplication): void {
   const config =
     app.get<ConfigService<EnvironmentVariables, true>>(ConfigService);
+
+  // Nagłówki bezpieczeństwa. Zdjęcia pokoi pochodzą z innych serwerów, a lokalnie aplikacja działa bez HTTPS. (DamianTchorzewski_72206)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          imgSrc: ["'self'", 'data:', 'https:'],
+          upgradeInsecureRequests: null,
+        },
+      },
+    }),
+  );
 
   // Wszystkie endpointy są dostępne pod wspólnym, wersjonowanym prefiksem. (DamianTchorzewski_72206)
   app.setGlobalPrefix(API_PREFIX);

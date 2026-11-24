@@ -4,7 +4,7 @@ Aplikacja webowa hotelu z projektu zespołowego C. Gość sam rezerwuje pobyt w 
 i plan pobytu, a hotel współpracuje przez REST API z systemami masaży (A), fitnessu (B) i voucherów (D).
 
 > **Status (24.11.2026):** gotowy jest prototyp wyszukiwarki pokoi (frontend, publikowany jako
-> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz backend z pełnym API z dokumentacji (bez US-17).
+> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz backend z pełnym API z dokumentacji.
 > Frontend nie korzysta jeszcze z API. Co jest w toku, pokazuje tablica projektu.
 
 ## Najważniejsze linki
@@ -123,6 +123,18 @@ npm ci
 npm run dev
 ```
 
+### Hosting
+
+Baza na [Neon](https://neon.com), aplikacja na [Render](https://render.com) (jeden adres dla strony i API).
+
+1. Neon: utwórz projekt PostgreSQL 16 w regionie Frankfurt i skopiuj adres połączenia **bez** „pooler”.
+2. Render: **New → Blueprint**, wskaż to repozytorium (plik `render.yaml`, gałąź `main`).
+3. `npm run env:production` wypisze klucze. Wpisz je w panelu Render razem z `DATABASE_URL` (adres z Neon)
+   i `FRONTEND_URL` (adres aplikacji na Render).
+
+Migracje i dane startowe wczytują się same przy pierwszym starcie. Partnerów zastępują atrapy. Darmowa aplikacja
+usypia bez ruchu, pierwsze wejście trwa wtedy do minuty.
+
 ### Problemy
 
 | Objaw                                                    | Rozwiązanie                                                             |
@@ -147,7 +159,7 @@ npm run dev
 | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`                      | US-27                    | recepcja  |
 | `GET /rooms`                                                                 | US-01                    | recepcja  |
 | `/reservations`: lista, szczegóły, utworzenie, zmiana, anulowanie            | US-08 – US-12            | recepcja  |
-| `/reservations/{id}/services`: dodanie, rezerwacja terminu, anulowanie       | US-13 – US-16            | recepcja  |
+| `/reservations/{id}/services`: dodanie, termin, przeniesienie, anulowanie    | US-13 – US-17            | recepcja  |
 | `GET /partners/{A,B}/services`, `GET /partners/{A,B}/slots`                  | US-13, US-14             | recepcja  |
 | `POST /reservations/{id}/check-in`, `POST /reservations/{id}/check-out`      | US-18, US-19             | recepcja  |
 | `GET /retry-tasks`, `POST /retry-tasks/{id}/retry`                           | US-20                    | recepcja  |
@@ -159,11 +171,12 @@ npm run dev
 .gitignore           pliki, które nie trafiają do repozytorium (np. .env)
 .github/workflows/   CI frontendu i publikacja wersji demo na GitHub Pages
 backend/             REST API (NestJS, Prisma)
-docker/              obraz frontendu dla Docker Compose
+docker/              obrazy dla Docker Compose i hostingu
 docs/openapi.yaml    kontrakt API
 frontend/            aplikacja React
 scripts/             skrypty npm run setup i npm start
 docker-compose.yml   całe środowisko lokalne
+render.yaml          konfiguracja hostingu
 README.md            ten plik
 ```
 

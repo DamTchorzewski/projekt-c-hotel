@@ -92,6 +92,16 @@ describe('Application (e2e)', () => {
     );
   });
 
+  it('sends security headers', async () => {
+    const { headers } = await request(app.getHttpServer()).get(
+      '/api/v1/health',
+    );
+
+    expect(headers['x-content-type-options']).toBe('nosniff');
+    expect(headers['content-security-policy']).toContain("default-src 'self'");
+    expect(headers['x-powered-by']).toBeUndefined();
+  });
+
   it('does not allow other origins through CORS', async () => {
     const response = await request(app.getHttpServer())
       .options('/api/v1/health')
