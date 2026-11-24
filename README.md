@@ -53,8 +53,14 @@ Razem 33 historyjki: 22 Must, 5 Should, 1 Could i 5 Won't.
 
 ## Uruchomienie
 
-Potrzebne: Git, [Node.js 24](https://nodejs.org) (ta sama wersja co w CI), uruchomiony
-[Docker Desktop](https://www.docker.com/products/docker-desktop/) oraz wolne porty 3000, 5173 i 5432.
+| Co uruchamiasz     | Co musisz mieć                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| Sam frontend       | Git, [Node.js 24](https://nodejs.org), wolny port 5173                                              |
+| Frontend + backend | to samo, uruchomiony [Docker Desktop](https://www.docker.com/products/docker-desktop/), wolne porty 3000 i 5432 |
+
+W Dockerze działa tylko baza PostgreSQL. Backend i frontend działają w Node.js.
+
+### Frontend + backend
 
 ```bash
 git clone https://github.com/DamTchorzewski/projekt-c-hotel.git
@@ -65,7 +71,8 @@ npm start
 ```
 
 `npm run setup` uruchamiasz raz oraz po zmianach zależności lub migracji bazy. Tworzy pliki `.env`, uruchamia bazę,
-instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`, a kończysz skrótem `Ctrl+C`.
+instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`. `Ctrl+C` zatrzymuje backend i frontend,
+a bazę zatrzymuje `npm run db:stop`.
 
 | Co sprawdzić     | Adres                                 | Oczekiwany wynik           |
 | ---------------- | ------------------------------------- | -------------------------- |
@@ -85,8 +92,24 @@ Lokalne konto recepcji: login `recepcja`, hasło `hotel-dev` (tylko do pracy na 
 | `npm run lint`                 | sprawdzenie kodu                                    |
 | `npm run build`                | kompilacja backendu i frontendu                     |
 
-Masz plik `backend/.env` sprzed wersji 0.3? Dopisz do niego zmienne `RECEPTION_LOGIN`, `RECEPTION_PASSWORD_HASH`
-i `SESSION_SECRET` z `backend/.env.example`. Baza korzysta z nowego wolumenu, więc stare dane lokalne nie przeszkadzają.
+### Sam frontend
+
+Bez Dockera i API. Wystarczy do pracy nad wyglądem; dane z backendu nie będą dostępne.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+### Problemy
+
+| Objaw                                                    | Rozwiązanie                                                             |
+| -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Docker is not running or does not respond`              | uruchom Docker Desktop i poczekaj, aż pokaże „running”                  |
+| Docker Desktop nie startuje po nagłym zamknięciu (Windows), w błędzie `The file cannot be accessed by the system` | zamknij Docker Desktop, zmień nazwy katalogów `%LOCALAPPDATA%\Docker\run` i `%LOCALAPPDATA%\docker-secrets-engine`, uruchom ponownie |
+| Zajęty port 3000 lub 5173                                | zamknij poprzednie `npm start`                                          |
+| `401` przy logowaniu na konto `recepcja`                 | do starego `backend/.env` dopisz `RECEPTION_LOGIN`, `RECEPTION_PASSWORD_HASH` i `SESSION_SECRET` z `backend/.env.example` |
 
 ### Jak frontend korzysta z API
 
