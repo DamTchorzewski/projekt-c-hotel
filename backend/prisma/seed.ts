@@ -15,10 +15,17 @@ const prisma = new PrismaClient({
 });
 
 try {
-  const summary = await seedDatabase(prisma);
-  console.log(
-    `Seeded ${summary.roomTypes} room types, ${summary.rooms} rooms and ${summary.reservations} test reservations.`,
-  );
+  if (
+    process.env['SEED_ONLY_IF_EMPTY'] === 'true' &&
+    (await prisma.roomType.count()) > 0
+  ) {
+    console.log('The database already has data, nothing to seed.');
+  } else {
+    const summary = await seedDatabase(prisma);
+    console.log(
+      `Seeded ${summary.roomTypes} room types, ${summary.rooms} rooms and ${summary.reservations} test reservations.`,
+    );
+  }
 } finally {
   await prisma.$disconnect();
 }

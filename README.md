@@ -4,7 +4,7 @@ Aplikacja webowa hotelu z projektu zespołowego C. Gość sam rezerwuje pobyt w 
 i plan pobytu, a hotel współpracuje przez REST API z systemami masaży (A), fitnessu (B) i voucherów (D).
 
 > **Status (24.11.2026):** gotowy jest prototyp wyszukiwarki pokoi (frontend, publikowany jako
-> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz fundament backendu z pierwszymi endpointami.
+> [wersja demo](https://damtchorzewski.github.io/projekt-c-hotel/)) oraz backend z pełnym API z dokumentacji.
 > Frontend nie korzysta jeszcze z API. Co jest w toku, pokazuje tablica projektu.
 
 ## Najważniejsze linki
@@ -53,8 +53,14 @@ Razem 33 historyjki: 22 Must, 5 Should, 1 Could i 5 Won't.
 
 ## Uruchomienie
 
-Potrzebne: Git, [Node.js 24](https://nodejs.org) (ta sama wersja co w CI), uruchomiony
-[Docker Desktop](https://www.docker.com/products/docker-desktop/) oraz wolne porty 3000, 5173 i 5432.
+| Co uruchamiasz     | Co musisz mieć                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| Sam frontend       | Git, [Node.js 24](https://nodejs.org), wolny port 5173                                              |
+| Frontend + backend | to samo, uruchomiony [Docker Desktop](https://www.docker.com/products/docker-desktop/), wolne porty 3000, 4000 i 5432 |
+
+W Dockerze działa tylko baza PostgreSQL. Backend, frontend i atrapy partnerów działają w Node.js.
+
+### Frontend + backend
 
 ```bash
 git clone https://github.com/DamTchorzewski/projekt-c-hotel.git
@@ -65,7 +71,8 @@ npm start
 ```
 
 `npm run setup` uruchamiasz raz oraz po zmianach zależności lub migracji bazy. Tworzy pliki `.env`, uruchamia bazę,
-instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`, a kończysz skrótem `Ctrl+C`.
+instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm start`. `Ctrl+C` zatrzymuje wszystko poza bazą,
+a bazę zatrzymuje `npm run db:stop`.
 
 | Co sprawdzić     | Adres                                 | Oczekiwany wynik           |
 | ---------------- | ------------------------------------- | -------------------------- |
@@ -73,20 +80,69 @@ instaluje zależności i wczytuje dane startowe. Na co dzień wystarcza `npm sta
 | Stan API i bazy  | <http://localhost:3000/api/v1/health> | `status: "ok"`             |
 | Dokumentacja API | <http://localhost:3000/api/docs>      | Swagger z listą endpointów |
 
-Lokalne konto recepcji: login `recepcja`, hasło `hotel-dev` (tylko do pracy na własnym komputerze, plik
-`backend/.env.example`).
+Klucze są losowe i inne na każdym komputerze: `npm run setup` zapisuje je w plikach `.env`, których nie ma w repozytorium.
+Login recepcji to `recepcja`, a hasło `npm run setup` pokazuje jeden raz.
 
 | Polecenie (w katalogu głównym) | Co robi                                             |
 | ------------------------------ | --------------------------------------------------- |
 | `npm run setup`                | pierwsza konfiguracja                               |
-| `npm start`                    | baza, backend i frontend                            |
+| `npm start`                    | baza, backend, frontend i atrapy partnerów          |
+| `npm run reception:password`   | nowe hasło recepcji                                 |
+| `npm run env:new`              | nowe wszystkie klucze lokalne                       |
 | `npm test`                     | testy jednostkowe backendu i testy frontendu        |
 | `npm run test:integration`     | testy backendu na prawdziwej bazie `hotel_c_test`   |
 | `npm run lint`                 | sprawdzenie kodu                                    |
 | `npm run build`                | kompilacja backendu i frontendu                     |
 
-Masz plik `backend/.env` sprzed wersji 0.3? Dopisz do niego zmienne `RECEPTION_LOGIN`, `RECEPTION_PASSWORD_HASH`
-i `SESSION_SECRET` z `backend/.env.example`. Baza korzysta z nowego wolumenu, więc stare dane lokalne nie przeszkadzają.
+### Wszystko w Dockerze
+
+Po jednorazowym `npm run setup`, przy zatrzymanym `npm start`:
+
+```bash
+docker compose up --build
+```
+
+Adresy są takie same. Zatrzymanie: `Ctrl+C`, potem `docker compose stop`.
+
+### Atrapy partnerów A, B i D
+
+`npm start` uruchamia je pod `http://localhost:4000`. Prawdziwych partnerów włącza `USE_PARTNER_MOCKS=false` i adresy
+`PARTNER_*_URL` w `backend/.env`. Tryb atrapy (`ok`, `refuse`, `error`, `delay`) zmienisz tak:
+
+```bash
+curl -X POST http://localhost:4000/control -H "Content-Type: application/json" -d '{"partner":"b","mode":"delay"}'
+```
+
+### Sam frontend
+
+Bez Dockera i API. Wystarczy do pracy nad wyglądem; dane z backendu nie będą dostępne.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+### Hosting
+
+Baza na [Neon](https://neon.com), aplikacja na [Render](https://render.com) (jeden adres dla strony i API).
+
+1. Neon: utwórz projekt PostgreSQL 16 w regionie Frankfurt i skopiuj adres połączenia **bez** „pooler”.
+2. Render: **New → Blueprint**, wskaż to repozytorium (plik `render.yaml`, gałąź `main`).
+3. `npm run env:production` wypisze klucze. Wpisz je w panelu Render razem z `DATABASE_URL` (adres z Neon)
+   i `FRONTEND_URL` (adres aplikacji na Render).
+
+Migracje i dane startowe wczytują się same przy pierwszym starcie. Partnerów zastępują atrapy. Darmowa aplikacja
+usypia bez ruchu, pierwsze wejście trwa wtedy do minuty.
+
+### Problemy
+
+| Objaw                                                    | Rozwiązanie                                                             |
+| -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Docker is not running or does not respond`              | uruchom Docker Desktop i poczekaj, aż pokaże „running”                  |
+| Docker Desktop nie startuje po nagłym zamknięciu (Windows), w błędzie `The file cannot be accessed by the system` | zamknij Docker Desktop, zmień nazwy katalogów `%LOCALAPPDATA%\Docker\run` i `%LOCALAPPDATA%\docker-secrets-engine`, uruchom ponownie |
+| Zajęty port 3000, 4000 lub 5173                          | zamknij poprzednie `npm start`                                          |
+| `401` przy logowaniu na konto `recepcja`                 | `npm run reception:password` i ponowne `npm start`                      |
 
 ### Jak frontend korzysta z API
 
@@ -95,14 +151,19 @@ i `SESSION_SECRET` z `backend/.env.example`. Baza korzysta z nowego wolumenu, wi
   i `details`.
 - Żądania panelu recepcji wysyłaj z `credentials: 'include'`, bo sesja jest w ciasteczku.
 
-| Gotowe endpointy                                                    | Historyjka           | Dostęp       |
-| ------------------------------------------------------------------- | -------------------- | ------------ |
-| `GET /offers`, `GET /availability`                                  | US-02, US-03, US-04  | publiczny    |
-| `POST /portal/reservations`                                         | US-05                | publiczny    |
-| `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`             | US-27                | recepcja     |
-| `GET /rooms`                                                        | US-01                | recepcja     |
-| `POST /reservations`, `POST /reservations/{id}/cancel`              | US-08, część US-10   | recepcja     |
-| `GET /external/offers`, `GET /external/availability`                | US-21                | klucz API    |
+| Endpointy                                                                    | Historyjki               | Dostęp    |
+| ---------------------------------------------------------------------------- | ------------------------ | --------- |
+| `GET /offers`, `GET /availability`                                           | US-02, US-03, US-04      | publiczny |
+| `POST /portal/reservations`, `GET /portal/reservations/{number}`             | US-05, US-06             | publiczny |
+| `GET /partner-offers`                                                        | US-07                    | publiczny |
+| `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`                      | US-27                    | recepcja  |
+| `GET /rooms`                                                                 | US-01                    | recepcja  |
+| `/reservations`: lista, szczegóły, utworzenie, zmiana, anulowanie            | US-08 – US-12            | recepcja  |
+| `/reservations/{id}/services`: dodanie, termin, przeniesienie, anulowanie    | US-13 – US-17            | recepcja  |
+| `GET /partners/{A,B}/services`, `GET /partners/{A,B}/slots`                  | US-13, US-14             | recepcja  |
+| `POST /reservations/{id}/check-in`, `POST /reservations/{id}/check-out`      | US-18, US-19             | recepcja  |
+| `GET /retry-tasks`, `POST /retry-tasks/{id}/retry`                           | US-20                    | recepcja  |
+| `/external/offers`, `/external/availability`, `/external/reservations`       | US-21 – US-23            | klucz API |
 
 ## Struktura repozytorium
 
@@ -110,10 +171,12 @@ i `SESSION_SECRET` z `backend/.env.example`. Baza korzysta z nowego wolumenu, wi
 .gitignore           pliki, które nie trafiają do repozytorium (np. .env)
 .github/workflows/   CI frontendu i publikacja wersji demo na GitHub Pages
 backend/             REST API (NestJS, Prisma)
+docker/              obrazy dla Docker Compose i hostingu
 docs/openapi.yaml    kontrakt API
 frontend/            aplikacja React
 scripts/             skrypty npm run setup i npm start
-docker-compose.yml   lokalna baza PostgreSQL
+docker-compose.yml   całe środowisko lokalne
+render.yaml          konfiguracja hostingu
 README.md            ten plik
 ```
 

@@ -69,6 +69,9 @@ export class StayServiceDto {
   @ApiProperty({ enum: ServiceSource, enumName: 'ServiceSource' })
   source: ServiceSource;
 
+  @ApiProperty({ example: 'A-MASSAGE-60' })
+  partnerServiceId: string;
+
   @ApiProperty({ example: 'Masaż relaksacyjny' })
   serviceName: string;
 
@@ -92,7 +95,15 @@ export class StayServiceDto {
   rejectionReason: RejectionReason | null;
 }
 
-export class ReservationDto extends ReservationConfirmationDto {
+export class PortalReservationDto extends ReservationConfirmationDto {
+  @ApiProperty({
+    description: 'Stay plan in chronological order, unscheduled items last',
+    type: [StayServiceDto],
+  })
+  services: StayServiceDto[];
+}
+
+export class ReservationDto extends PortalReservationDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
 
@@ -110,10 +121,4 @@ export class ReservationDto extends ReservationConfirmationDto {
 
   @ApiProperty({ type: ReservationGuestDto, nullable: true })
   guest: ReservationGuestDto | null;
-
-  @ApiProperty({
-    description: 'Stay plan in chronological order, unscheduled items last',
-    type: [StayServiceDto],
-  })
-  services: StayServiceDto[];
 }

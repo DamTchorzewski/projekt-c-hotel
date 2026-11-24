@@ -8,7 +8,6 @@
   "type": "module",
   "scripts": {
     "build": "nest build",
-    "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -22,7 +21,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "openapi:update": "vitest run --config ./vitest.config.e2e.ts test/openapi.e2e-spec.ts -u",
     "test:integration": "vitest run --config ./vitest.config.integration.ts",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "mocks": "tsx mocks/main.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -38,13 +38,13 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^18.0.9",
+    "helmet": "^8.3.0",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
-    "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
@@ -66,5 +66,10 @@
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "effect": "^3.22.1"
+    }
   }
 }

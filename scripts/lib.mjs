@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import net from 'node:net';
 import { resolve } from 'node:path';
 
@@ -126,22 +126,6 @@ export async function ensurePortsFree(ports) {
   }
 }
 
-// Kopiuje przykładowy plik konfiguracji tylko wtedy, gdy własnego jeszcze nie ma, aby nie nadpisać ustawień członka zespołu. (DamianTchorzewski_72206)
-export function copyEnvIfMissing(directory) {
-  const target = resolve(directory, '.env');
-  const example = resolve(directory, '.env.example');
-
-  if (existsSync(target)) {
-    console.log(
-      `${paint('cyan', '>')} ${target} already exists, leaving it as it is`,
-    );
-    return;
-  }
-
-  copyFileSync(example, target);
-  console.log(`${paint('cyan', '>')} created ${target} from .env.example`);
-}
-
 export function startDatabase() {
   // --wait kończy się dopiero, gdy baza przyjmuje połączenia (healthcheck z docker-compose.yml). (DamianTchorzewski_72206)
   runSync('Starting PostgreSQL (docker compose)', 'docker', [
@@ -149,6 +133,7 @@ export function startDatabase() {
     'up',
     '-d',
     '--wait',
+    'postgres',
   ]);
 }
 

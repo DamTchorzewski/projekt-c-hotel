@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUrl,
   Matches,
@@ -30,6 +31,14 @@ function requiredInProduction(
 ): (env: EnvironmentVariables) => boolean {
   return (env) =>
     env.NODE_ENV === NodeEnvironment.Production || env[key] !== undefined;
+}
+
+function realPartnerUrl(
+  key: 'PARTNER_A_URL' | 'PARTNER_B_URL' | 'PARTNER_D_URL',
+): (env: EnvironmentVariables) => boolean {
+  return (env) =>
+    env[key] !== undefined ||
+    !(env.USE_PARTNER_MOCKS ?? env.NODE_ENV !== NodeEnvironment.Production);
 }
 
 // Zmienne środowiskowe wymagane przez aplikację wraz z wartościami domyślnymi. (DamianTchorzewski_72206)
@@ -82,13 +91,63 @@ export class EnvironmentVariables {
   @MinLength(32)
   @IsString()
   SESSION_SECRET?: string;
+
+  // Atrapy partnerów zamiast prawdziwych systemów. Domyślnie włączone poza produkcją. (DamianTchorzewski_72206)
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  USE_PARTNER_MOCKS?: boolean;
+
+  @IsUrl({ require_tld: false, require_protocol: true })
+  PARTNER_MOCKS_URL: string = 'http://localhost:4000';
+
+  // Adresy i klucze prawdziwych partnerów. Adresy są wymagane, gdy atrapy są wyłączone. (DamianTchorzewski_72206)
+  @ValidateIf(realPartnerUrl('PARTNER_A_URL'))
+  @IsUrl({ require_tld: false, require_protocol: true })
+  PARTNER_A_URL?: string;
+
+  @ValidateIf(realPartnerUrl('PARTNER_B_URL'))
+  @IsUrl({ require_tld: false, require_protocol: true })
+  PARTNER_B_URL?: string;
+
+  @ValidateIf(realPartnerUrl('PARTNER_D_URL'))
+  @IsUrl({ require_tld: false, require_protocol: true })
+  PARTNER_D_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  PARTNER_A_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  PARTNER_B_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  PARTNER_D_API_KEY?: string;
+
+  // Katalog zbudowanego frontendu. Ustawiony na hostingu, gdzie API i strona mają jeden adres. (DamianTchorzewski_72206)
+  @IsOptional()
+  @IsString()
+  FRONTEND_DIST?: string;
+
+  // Liczba zaufanych serwerów pośredniczących (np. 1 na hostingu), aby limit żądań liczył prawdziwe adresy IP. (DamianTchorzewski_72206)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(5)
+  TRUST_PROXY_HOPS: number = 0;
 }
 
 // Waliduje konfigurację przy starcie, dzięki czemu aplikacja nie uruchomi się z błędnymi ustawieniami. (DamianTchorzewski_72206)
 export function validateEnv(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const validated = plainToInstance(EnvironmentVariables, config);
+  // Pusta wartość w pliku .env znaczy to samo co jej brak. (DamianTchorzewski_72206)
+  const defined = Object.fromEntries(
+    Object.entries(config).filter(([, value]) => value !== ''),
+  );
+  const validated = plainToInstance(EnvironmentVariables, defined);
   const errors = validateSync(validated);
 
   if (errors.length > 0) {

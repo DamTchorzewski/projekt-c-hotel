@@ -1,0 +1,28 @@
+# Backend z frontendem na Render, baza na Neon. Wartości "sync: false" wpisuje się w panelu Render. (DamianTchorzewski_72206)
+services:
+  - type: web
+    name: hotel-c
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./docker/production.Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: RECEPTION_LOGIN
+        sync: false
+      - key: RECEPTION_PASSWORD_HASH
+        sync: false
+      - key: INTEGRATION_API_KEYS
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: USE_PARTNER_MOCKS
+        value: "true"
+      - key: TRUST_PROXY_HOPS
+        value: "1"
