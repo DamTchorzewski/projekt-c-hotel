@@ -4,17 +4,29 @@ import {
 } from '../../common/dates/date-utils.js';
 import { toMoney } from '../../common/pricing/stay-pricing.js';
 import type { Plain } from '../../common/types/plain.js';
-import type { Prisma } from '../../generated/prisma/client.js';
-import { CURRENCY } from '../offers/offers.mapper.js';
 import type {
+  PartnerServiceBooking,
+  Prisma,
+} from '../../generated/prisma/client.js';
+import { CURRENCY } from '../offers/offers.mapper.js';
+import type { ExternalReservationDto } from './dto/external-reservation.dto.js';
+import type {
+  PortalReservationDto,
   ReservationConfirmationDto,
   ReservationDto,
+  StayServiceDto,
 } from './dto/reservation.dto.js';
 
 export const RESERVATION_INCLUDE = {
   room: { include: { roomType: true } },
   guests: { where: { isPrimary: true } },
-  services: { orderBy: { scheduledAt: { sort: 'asc', nulls: 'last' } } },
+  services: {
+    orderBy: [
+      { scheduledAt: { sort: 'asc', nulls: 'last' } },
+      { serviceName: 'asc' },
+      { id: 'asc' },
+    ],
+  },
 } satisfies Prisma.ReservationInclude;
 
 export type ReservationWithRelations = Prisma.ReservationGetPayload<{
@@ -42,18 +54,43 @@ export function toConfirmationDto(
   };
 }
 
-export function toReservationDto(
+export function toStayServiceDto(
+  service: PartnerServiceBooking,
+): Plain<StayServiceDto> {
+  return {
+    id: service.id,
+    partnerType: service.partnerType,
+    source: service.source,
+    partnerServiceId: service.partnerServiceId,
+    serviceName: service.serviceName,
+    price: service.price === null ? null : toMoney(service.price),
+    scheduledAt: service.scheduledAt?.toISOString() ?? null,
+    durationMinutes: service.durationMinutes,
+    status: service.status,
+    rejectionReason: service.rejectionReason,
+  };
+}
+
+export function toPortalReservationDto(
   reservation: ReservationWithRelations,
-): ReservationDto {
+): Plain<PortalReservationDto> {
+  return {
+    ...toConfirmationDto(reservation),
+    services: reservation.services.map(toStayServiceDto),
+  };
+}
+
+export function toExternalReservationDto(
+  reservation: ReservationWithRelations,
+): Plain<ExternalReservationDto> {
   const guest = reservation.guests[0];
 
   return {
-    ...toConfirmationDto(reservation),
+    ...toPortalReservationDto(reservation),
     id: reservation.id,
     source: reservation.source,
     voucherStatus: reservation.voucherStatus,
     voucherCode: reservation.voucherCode,
-    notes: reservation.notes,
     guest: guest
       ? {
           firstName: guest.firstName,
@@ -62,16 +99,14 @@ export function toReservationDto(
           phone: guest.phone,
         }
       : null,
-    services: reservation.services.map((service) => ({
-      id: service.id,
-      partnerType: service.partnerType,
-      source: service.source,
-      serviceName: service.serviceName,
-      price: service.price === null ? null : toMoney(service.price),
-      scheduledAt: service.scheduledAt?.toISOString() ?? null,
-      durationMinutes: service.durationMinutes,
-      status: service.status,
-      rejectionReason: service.rejectionReason,
-    })),
+  };
+}
+
+export function toReservationDto(
+  reservation: ReservationWithRelations,
+): Plain<ReservationDto> {
+  return {
+    ...toExternalReservationDto(reservation),
+    notes: reservation.notes,
   };
 }

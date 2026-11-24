@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
+import { readValue } from './env.mjs';
 import {
   BACKEND,
   ensureDockerRunning,
@@ -21,6 +22,9 @@ const API_PORT = readApiPort();
 const WEB_PORT = 5173;
 const API_URL = `http://localhost:${API_PORT}/api/v1`;
 const WEB_URL = `http://localhost:${WEB_PORT}`;
+const MOCKS_PORT = 4000;
+const USE_MOCKS =
+  readValue(resolve(BACKEND, '.env'), 'USE_PARTNER_MOCKS') !== 'false';
 const READY_TIMEOUT_MS = 90_000;
 
 ensureNodeVersion();
@@ -41,6 +45,7 @@ if (!existsSync(resolve(BACKEND, '.env'))) {
 await ensurePortsFree([
   { port: API_PORT, name: 'API' },
   { port: WEB_PORT, name: 'frontend' },
+  ...(USE_MOCKS ? [{ port: MOCKS_PORT, name: 'partner mocks' }] : []),
 ]);
 
 ensureDockerRunning();
@@ -56,11 +61,14 @@ const children = [
     BACKEND,
   ),
   startLongRunning('web', 'magenta', 'npm', ['run', 'dev'], FRONTEND),
+  ...(USE_MOCKS
+    ? [startLongRunning('mocks', 'yellow', 'npm', ['run', 'mocks'], BACKEND)]
+    : []),
 ];
 
 let stopping = false;
 
-// Zatrzymanie jednego procesu zatrzymuje drugi, aby w tle nie zostawał osierocony serwer. (DamianTchorzewski_72206)
+// Zatrzymanie jednego procesu zatrzymuje pozostałe, aby w tle nie zostawał osierocony serwer. (DamianTchorzewski_72206)
 function stopAll(exitCode) {
   if (stopping) {
     return;

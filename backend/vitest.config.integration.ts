@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import {
   TEST_API_KEY,
   TEST_LOGIN,
+  TEST_MOCKS_PORT,
+  TEST_OTHER_API_KEY,
   TEST_PASSWORD_HASH,
 } from './test/integration/test-credentials.js';
 import { TEST_DATABASE_URL } from './test/integration/test-database.js';
@@ -23,8 +25,9 @@ export default defineConfig({
       RATE_LIMIT_ENABLED: 'false',
       RECEPTION_LOGIN: TEST_LOGIN,
       RECEPTION_PASSWORD_HASH: TEST_PASSWORD_HASH,
-      INTEGRATION_API_KEYS:
-        `partner-d:${TEST_API_KEY}`,
+      INTEGRATION_API_KEYS: `partner-d:${TEST_API_KEY},partner-a:${TEST_OTHER_API_KEY}`,
+      USE_PARTNER_MOCKS: 'true',
+      PARTNER_MOCKS_URL: `http://127.0.0.1:${TEST_MOCKS_PORT}`,
     },
   },
 });

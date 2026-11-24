@@ -274,6 +274,118 @@ paths:
       summary: List rooms with the status for today, read only (US-01)
       tags:
         - rooms
+  /api/v1/partner-offers:
+    get:
+      description: Cached for 15 minutes.
+      operationId: PartnersController_findOffers
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerOffersResponseDto"
+      summary: Services of partners A and B for the guest portal (US-07)
+      tags:
+        - partners
+  /api/v1/partners/{partner}/services:
+    get:
+      operationId: PartnersController_findServices
+      parameters:
+        - name: partner
+          required: true
+          in: path
+          schema:
+            type: string
+            enum:
+              - A
+              - B
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerServicesResponseDto"
+        "400":
+          description: Unknown partner (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The partner does not answer (PARTNER_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Current services of a partner (US-14)
+      tags:
+        - partners
+  /api/v1/partners/{partner}/slots:
+    get:
+      operationId: PartnersController_findSlots
+      parameters:
+        - name: partner
+          required: true
+          in: path
+          schema:
+            type: string
+            enum:
+              - A
+              - B
+        - name: date
+          required: true
+          in: query
+          schema:
+            format: date
+            example: 2026-12-02
+            type: string
+        - name: serviceId
+          required: false
+          in: query
+          schema:
+            example: A-MASSAGE-60
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerSlotsResponseDto"
+        "400":
+          description: Unknown partner or invalid date (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The partner does not answer (PARTNER_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Free slots of a partner on a given day (US-13)
+      tags:
+        - partners
   /api/v1/portal/reservations:
     post:
       operationId: PortalReservationsController_create
@@ -306,7 +418,127 @@ paths:
       summary: Book a stay in the guest portal (US-05)
       tags:
         - portal
+  /api/v1/portal/reservations/{number}:
+    get:
+      operationId: PortalReservationsController_findOne
+      parameters:
+        - name: number
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: email
+          required: true
+          in: query
+          schema:
+            format: email
+            example: anna.kowalska@example.com
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalReservationDto"
+        "400":
+          description: Invalid e-mail (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: No reservation for this number and e-mail (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "429":
+          description: Too many attempts from one address (TOO_MANY_REQUESTS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Show a reservation to the guest by number and e-mail (US-06)
+      tags:
+        - portal
   /api/v1/reservations:
+    get:
+      description: Sorted by the arrival date. Without filters it returns arrivals and departures of today.
+      operationId: ReservationsController_findAll
+      parameters:
+        - name: q
+          required: false
+          in: query
+          description: Part of the reservation number or of the last name
+          schema:
+            maxLength: 100
+            example: Kowalska
+            type: string
+        - name: from
+          required: false
+          in: query
+          description: First day of the range, stays that overlap it are returned
+          schema:
+            format: date
+            type: string
+        - name: to
+          required: false
+          in: query
+          description: Last day of the range
+          schema:
+            format: date
+            type: string
+        - name: status
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/ReservationStatus"
+        - name: source
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/ReservationSource"
+        - name: page
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 10000
+            default: 1
+            type: number
+        - name: pageSize
+          required: false
+          in: query
+          schema:
+            minimum: 1
+            maximum: 100
+            default: 20
+            type: number
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationsResponseDto"
+        "400":
+          description: Invalid query (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Search reservations (US-11)
+      tags:
+        - reservations
     post:
       operationId: ReservationsController_create
       parameters: []
@@ -346,9 +578,91 @@ paths:
       summary: Book a stay at the reception (US-08)
       tags:
         - reservations
+  /api/v1/reservations/{id}:
+    get:
+      operationId: ReservationsController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Reservation details with the stay plan (US-12)
+      tags:
+        - reservations
+    patch:
+      operationId: ReservationsController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReservationDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDto"
+        "400":
+          description: VALIDATION_ERROR, INVALID_DATES or CAPACITY_EXCEEDED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: ROOM_NOT_AVAILABLE, INVALID_STATE or SERVICES_OUTSIDE_STAY
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Change a reservation (US-09)
+      tags:
+        - reservations
   /api/v1/reservations/{id}/cancel:
     post:
-      description: Confirmed partner services get the CANCEL_RETRY status until partner adapters are available (US-26).
       operationId: ReservationsController_cancel
       parameters:
         - name: id
@@ -370,7 +684,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
         "404":
-          description: The reservation does not exist (NOT_FOUND)
+          description: The reservation or the service does not exist (NOT_FOUND)
           content:
             application/json:
               schema:
@@ -383,9 +697,506 @@ paths:
                 $ref: "#/components/schemas/ErrorResponseDto"
       security:
         - reception-session: []
-      summary: Cancel a reservation, idempotent (US-10)
+      summary: Cancel a reservation with its services, idempotent (US-10)
       tags:
         - reservations
+  /api/v1/reservations/{id}/check-in:
+    post:
+      description: When system D does not answer, conditional=true checks the guest in and leaves the voucher to verify.
+      operationId: ReservationsController_checkIn
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckInDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: CHECK_IN_NOT_ALLOWED or INVALID_STATE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "422":
+          description: The voucher is not valid (VOUCHER_INVALID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: System D does not answer (PARTNER_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Check in with voucher verification (US-18)
+      tags:
+        - reservations
+  /api/v1/reservations/{id}/check-out:
+    post:
+      operationId: ReservationsController_checkOut
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The guest is not checked in (INVALID_STATE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Check out and settle the voucher (US-19)
+      tags:
+        - reservations
+  /api/v1/reservations/{id}/services:
+    post:
+      operationId: ReservationsController_addService
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddServiceDto"
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StayServiceDto"
+        "400":
+          description: Unknown service (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The stay is closed (INVALID_STATE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The partner does not answer (PARTNER_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Add an extra service of A or B (US-14)
+      tags:
+        - reservations
+  /api/v1/reservations/{id}/services/{serviceId}/book:
+    post:
+      description: "A refusal of the partner is not an HTTP error: the service gets the REJECTED status with a reason."
+      operationId: ReservationsController_bookService
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: serviceId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookServiceDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StayServiceDto"
+        "400":
+          description: Invalid time (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: SERVICE_OUTSIDE_STAY, SERVICE_TIME_CONFLICT or INVALID_STATE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Book a service at the partner (US-13, US-15)
+      tags:
+        - reservations
+  /api/v1/reservations/{id}/services/{serviceId}/cancel:
+    post:
+      description: A package service returns to the pool. When the partner does not answer, the status is CANCEL_RETRY.
+      operationId: ReservationsController_cancelService
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: serviceId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StayServiceDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The service or the stay cannot be changed (INVALID_STATE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Cancel a single service (US-16)
+      tags:
+        - reservations
+  /api/v1/external/reservations:
+    post:
+      operationId: ExternalReservationsController_create
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: Required. A repeated request with the same key and body returns the existing reservation
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExternalReservationDto"
+      responses:
+        "200":
+          description: Repeated request, nothing was created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalReservationDto"
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalReservationDto"
+        "400":
+          description: VALIDATION_ERROR, VOUCHER_REQUIRED, INVALID_DATES or CAPACITY_EXCEEDED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Missing or invalid API key (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "403":
+          description: The key does not give access to reservations (FORBIDDEN)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: ROOM_NOT_AVAILABLE, VOUCHER_ALREADY_USED or IDEMPOTENCY_CONFLICT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "429":
+          description: Too many requests from one address (TOO_MANY_REQUESTS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - api-key: []
+      summary: Book a stay with a voucher (US-22)
+      tags:
+        - external
+  /api/v1/external/reservations/{id}:
+    get:
+      operationId: ExternalReservationsController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalReservationDto"
+        "401":
+          description: Missing or invalid API key (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: Unknown reservation or one from another channel (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - api-key: []
+      summary: Read an own reservation and its plan (US-23)
+      tags:
+        - external
+    patch:
+      operationId: ExternalReservationsController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateExternalReservationDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalReservationDto"
+        "400":
+          description: VALIDATION_ERROR, INVALID_DATES or CAPACITY_EXCEEDED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Missing or invalid API key (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: Unknown reservation or one from another channel (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: ROOM_NOT_AVAILABLE, INVALID_STATE or SERVICES_OUTSIDE_STAY
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - api-key: []
+      summary: Change an own reservation (US-23)
+      tags:
+        - external
+  /api/v1/external/reservations/{id}/cancel:
+    post:
+      operationId: ExternalReservationsController_cancel
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalReservationDto"
+        "401":
+          description: Missing or invalid API key (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: Unknown reservation or one from another channel (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The stay has started or ended (INVALID_STATE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - api-key: []
+      summary: Cancel an own reservation, idempotent (US-23)
+      tags:
+        - external
+  /api/v1/retry-tasks:
+    get:
+      operationId: RetryTasksController_findAll
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetryTasksResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: List operations to retry (US-20)
+      tags:
+        - retry-tasks
+  /api/v1/retry-tasks/{id}/retry:
+    post:
+      operationId: RetryTasksController_retry
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetryResultDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The task does not exist or is already done (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Retry an operation (US-20)
+      tags:
+        - retry-tasks
 info:
   title: Hotel C REST API
   description: "Hotel system API: guest portal, reception panel and endpoints for partner systems. Follows the project documentation 0.3."
@@ -404,6 +1215,10 @@ tags:
     description: Room register for the reception
   - name: reservations
     description: Reservations made by the reception
+  - name: partners
+    description: Services of partners A and B
+  - name: retry-tasks
+    description: Operations to retry
   - name: external
     description: Endpoints for partner systems
 servers:
@@ -459,6 +1274,15 @@ components:
         - CAPACITY_EXCEEDED
         - ROOM_NOT_AVAILABLE
         - INVALID_STATE
+        - SERVICES_OUTSIDE_STAY
+        - SERVICE_OUTSIDE_STAY
+        - SERVICE_TIME_CONFLICT
+        - CHECK_IN_NOT_ALLOWED
+        - VOUCHER_REQUIRED
+        - VOUCHER_ALREADY_USED
+        - VOUCHER_INVALID
+        - IDEMPOTENCY_CONFLICT
+        - PARTNER_UNAVAILABLE
       description: Stable machine-readable error code
     ErrorDetailDto:
       type: object
@@ -785,6 +1609,99 @@ components:
             $ref: "#/components/schemas/RoomDto"
       required:
         - items
+    PartnerServiceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: A-MASSAGE-60
+        name:
+          type: string
+          example: Masaż relaksacyjny
+        description:
+          type: string
+          example: Masaż całego ciała.
+        durationMinutes:
+          type: number
+          example: 60
+        price:
+          type: number
+          example: 180
+        currency:
+          type: string
+          example: PLN
+        imageUrl:
+          type:
+            - string
+            - "null"
+          example: null
+      required:
+        - id
+        - name
+        - description
+        - durationMinutes
+        - price
+        - currency
+        - imageUrl
+    PartnerOfferDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartnerServiceDto"
+        partner:
+          type: string
+          enum:
+            - A
+            - B
+        available:
+          type: boolean
+          description: False when the partner does not answer. Items then come from the last known offer and may be empty
+      required:
+        - items
+        - partner
+        - available
+    PartnerOffersResponseDto:
+      type: object
+      properties:
+        partners:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartnerOfferDto"
+      required:
+        - partners
+    PartnerServicesResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartnerServiceDto"
+      required:
+        - items
+    PartnerSlotDto:
+      type: object
+      properties:
+        serviceId:
+          type: string
+          example: A-MASSAGE-60
+        startsAt:
+          type: string
+          format: date-time
+          example: 2026-12-02T10:00:00+01:00
+      required:
+        - serviceId
+        - startsAt
+    PartnerSlotsResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartnerSlotDto"
+      required:
+        - items
     GuestDto:
       type: object
       properties:
@@ -895,80 +1812,6 @@ components:
         - guestsCount
         - totalPrice
         - currency
-    CreateReceptionReservationDto:
-      type: object
-      properties:
-        roomTypeCode:
-          type: string
-          description: Room type code
-          example: DBL
-        checkIn:
-          type: string
-          description: Arrival date, YYYY-MM-DD. Must not be in the past
-          format: date
-          example: 2026-12-01
-        checkOut:
-          type: string
-          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
-          format: date
-          example: 2026-12-04
-        guestsCount:
-          type: number
-          description: Must not exceed the capacity of the room type
-          minimum: 1
-          example: 2
-        guest:
-          $ref: "#/components/schemas/GuestDto"
-        notes:
-          type: string
-          maxLength: 1000
-          example: Późny przyjazd
-        roomId:
-          type: string
-          description: A specific room of the given type. Without it the system assigns the free room with the lowest number
-          format: uuid
-      required:
-        - roomTypeCode
-        - checkIn
-        - checkOut
-        - guestsCount
-        - guest
-    ReservationSource:
-      type: string
-      enum:
-        - PORTAL
-        - RECEPTION
-        - PARTNER_D
-    VoucherStatus:
-      type: string
-      enum:
-        - NONE
-        - PENDING_VERIFICATION
-        - VERIFIED
-        - INVALID
-        - SETTLED
-        - SETTLEMENT_RETRY
-    ReservationGuestDto:
-      type: object
-      properties:
-        firstName:
-          type: string
-          example: Anna
-        lastName:
-          type: string
-          example: Kowalska
-        email:
-          type: string
-          format: email
-          example: anna.kowalska@example.com
-        phone:
-          type: string
-          example: "+48123456789"
-      required:
-        - firstName
-        - lastName
-        - email
-        - phone
     PartnerType:
       type: string
       enum:
@@ -1005,6 +1848,9 @@ components:
         source:
           allOf:
             - $ref: "#/components/schemas/ServiceSource"
+        partnerServiceId:
+          type: string
+          example: A-MASSAGE-60
         serviceName:
           type: string
           example: Masaż relaksacyjny
@@ -1034,12 +1880,174 @@ components:
         - id
         - partnerType
         - source
+        - partnerServiceId
         - serviceName
         - price
         - scheduledAt
         - durationMinutes
         - status
         - rejectionReason
+    PortalReservationDto:
+      type: object
+      properties:
+        number:
+          type: string
+          example: R-000123
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ReservationStatus"
+        roomTypeCode:
+          type: string
+          example: DBL
+        roomTypeName:
+          type: string
+          example: Pokój dwuosobowy
+        roomNumber:
+          type: string
+          description: Assigned room
+          example: "103"
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        nights:
+          type: number
+          example: 3
+        guestsCount:
+          type: number
+          example: 2
+        totalPrice:
+          type: number
+          example: 750
+        currency:
+          type: string
+          example: PLN
+        services:
+          description: Stay plan in chronological order, unscheduled items last
+          type: array
+          items:
+            $ref: "#/components/schemas/StayServiceDto"
+      required:
+        - number
+        - status
+        - roomTypeCode
+        - roomTypeName
+        - roomNumber
+        - checkIn
+        - checkOut
+        - nights
+        - guestsCount
+        - totalPrice
+        - currency
+        - services
+    ReservationSource:
+      type: string
+      enum:
+        - PORTAL
+        - RECEPTION
+        - PARTNER_D
+    VoucherStatus:
+      type: string
+      enum:
+        - NONE
+        - PENDING_VERIFICATION
+        - VERIFIED
+        - INVALID
+        - SETTLED
+        - SETTLEMENT_RETRY
+    ReservationListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+          example: R-000001
+        guestName:
+          type: string
+          example: Anna Kowalska
+        roomNumber:
+          type: string
+          example: "102"
+        roomTypeCode:
+          type: string
+          example: DBL
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ReservationStatus"
+        source:
+          allOf:
+            - $ref: "#/components/schemas/ReservationSource"
+        voucherStatus:
+          allOf:
+            - $ref: "#/components/schemas/VoucherStatus"
+      required:
+        - id
+        - number
+        - guestName
+        - roomNumber
+        - roomTypeCode
+        - checkIn
+        - checkOut
+        - status
+        - source
+        - voucherStatus
+    ReservationsResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservationListItemDto"
+        total:
+          type: number
+          description: Number of all matching items
+          example: 4
+        page:
+          type: number
+          example: 1
+        pageSize:
+          type: number
+          example: 20
+      required:
+        - items
+        - total
+        - page
+        - pageSize
+    ReservationGuestDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: Anna
+        lastName:
+          type: string
+          example: Kowalska
+        email:
+          type: string
+          format: email
+          example: anna.kowalska@example.com
+        phone:
+          type: string
+          example: "+48123456789"
+      required:
+        - firstName
+        - lastName
+        - email
+        - phone
     ReservationDto:
       type: object
       properties:
@@ -1079,6 +2087,11 @@ components:
         currency:
           type: string
           example: PLN
+        services:
+          description: Stay plan in chronological order, unscheduled items last
+          type: array
+          items:
+            $ref: "#/components/schemas/StayServiceDto"
         id:
           type: string
           format: uuid
@@ -1102,11 +2115,6 @@ components:
           anyOf:
             - $ref: "#/components/schemas/ReservationGuestDto"
             - type: "null"
-        services:
-          description: Stay plan in chronological order, unscheduled items last
-          type: array
-          items:
-            $ref: "#/components/schemas/StayServiceDto"
       required:
         - number
         - status
@@ -1119,10 +2127,336 @@ components:
         - guestsCount
         - totalPrice
         - currency
+        - services
         - id
         - source
         - voucherStatus
         - voucherCode
         - notes
         - guest
+    CreateReceptionReservationDto:
+      type: object
+      properties:
+        roomTypeCode:
+          type: string
+          description: Room type code
+          example: DBL
+        checkIn:
+          type: string
+          description: Arrival date, YYYY-MM-DD. Must not be in the past
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
+          format: date
+          example: 2026-12-04
+        guestsCount:
+          type: number
+          description: Must not exceed the capacity of the room type
+          minimum: 1
+          example: 2
+        guest:
+          $ref: "#/components/schemas/GuestDto"
+        notes:
+          type: string
+          maxLength: 1000
+          example: Późny przyjazd
+        roomId:
+          type: string
+          description: A specific room of the given type. Without it the system assigns the free room with the lowest number
+          format: uuid
+      required:
+        - roomTypeCode
+        - checkIn
+        - checkOut
+        - guestsCount
+        - guest
+    UpdateReservationDto:
+      type: object
+      properties:
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        guestsCount:
+          type: number
+          minimum: 1
+          example: 2
+        roomTypeCode:
+          type: string
+          example: DBL
+        roomId:
+          type: string
+          format: uuid
+        guest:
+          $ref: "#/components/schemas/GuestDto"
+        notes:
+          type: string
+          description: The only field that can be changed in CHECKED_IN and COMPLETED. An empty text removes the notes
+          maxLength: 1000
+    CheckInDto:
+      type: object
+      properties:
+        conditional:
+          type: boolean
+          description: The reception consciously accepts a voucher that could not be verified
+          default: false
+    AddServiceDto:
+      type: object
+      properties:
+        partnerType:
+          allOf:
+            - $ref: "#/components/schemas/PartnerType"
+        partnerServiceId:
+          type: string
+          maxLength: 100
+          example: A-MASSAGE-60
+      required:
+        - partnerType
+        - partnerServiceId
+    BookServiceDto:
+      type: object
+      properties:
+        scheduledAt:
+          type: string
+          description: Start of the service with a time zone
+          format: date-time
+          example: 2026-12-02T10:00:00+01:00
+      required:
+        - scheduledAt
+    PackageServiceDto:
+      type: object
+      properties:
+        partnerType:
+          allOf:
+            - $ref: "#/components/schemas/PartnerType"
+        partnerServiceId:
+          type: string
+          maxLength: 100
+          example: A-MASSAGE-60
+        serviceName:
+          type: string
+          maxLength: 200
+          example: Masaż relaksacyjny
+        quantity:
+          type: number
+          minimum: 1
+          maximum: 10
+          example: 1
+      required:
+        - partnerType
+        - partnerServiceId
+        - serviceName
+        - quantity
+    CreateExternalReservationDto:
+      type: object
+      properties:
+        roomTypeCode:
+          type: string
+          description: Room type code
+          example: DBL
+        checkIn:
+          type: string
+          description: Arrival date, YYYY-MM-DD. Must not be in the past
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          description: Departure date, YYYY-MM-DD. Later than checkIn, at most 30 nights
+          format: date
+          example: 2026-12-04
+        guestsCount:
+          type: number
+          description: Must not exceed the capacity of the room type
+          minimum: 1
+          example: 2
+        guest:
+          $ref: "#/components/schemas/GuestDto"
+        voucherCode:
+          type: string
+          maxLength: 50
+          example: TEST-C-0001
+        packageServices:
+          maxItems: 20
+          type: array
+          items:
+            $ref: "#/components/schemas/PackageServiceDto"
+      required:
+        - roomTypeCode
+        - checkIn
+        - checkOut
+        - guestsCount
+        - guest
+        - voucherCode
+    ExternalReservationDto:
+      type: object
+      properties:
+        number:
+          type: string
+          example: R-000123
+        status:
+          allOf:
+            - $ref: "#/components/schemas/ReservationStatus"
+        roomTypeCode:
+          type: string
+          example: DBL
+        roomTypeName:
+          type: string
+          example: Pokój dwuosobowy
+        roomNumber:
+          type: string
+          description: Assigned room
+          example: "103"
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        nights:
+          type: number
+          example: 3
+        guestsCount:
+          type: number
+          example: 2
+        totalPrice:
+          type: number
+          example: 750
+        currency:
+          type: string
+          example: PLN
+        services:
+          description: Stay plan in chronological order, unscheduled items last
+          type: array
+          items:
+            $ref: "#/components/schemas/StayServiceDto"
+        id:
+          type: string
+          format: uuid
+        source:
+          allOf:
+            - $ref: "#/components/schemas/ReservationSource"
+        voucherStatus:
+          allOf:
+            - $ref: "#/components/schemas/VoucherStatus"
+        voucherCode:
+          type:
+            - string
+            - "null"
+          example: null
+        guest:
+          anyOf:
+            - $ref: "#/components/schemas/ReservationGuestDto"
+            - type: "null"
+      required:
+        - number
+        - status
+        - roomTypeCode
+        - roomTypeName
+        - roomNumber
+        - checkIn
+        - checkOut
+        - nights
+        - guestsCount
+        - totalPrice
+        - currency
         - services
+        - id
+        - source
+        - voucherStatus
+        - voucherCode
+        - guest
+    UpdateExternalReservationDto:
+      type: object
+      properties:
+        checkIn:
+          type: string
+          format: date
+          example: 2026-12-01
+        checkOut:
+          type: string
+          format: date
+          example: 2026-12-04
+        guestsCount:
+          type: number
+          minimum: 1
+          example: 2
+        roomTypeCode:
+          type: string
+          example: DBL
+    RetryTaskType:
+      type: string
+      enum:
+        - CANCEL_SERVICE
+        - VERIFY_VOUCHER
+        - SETTLE_VOUCHER
+    RetryTaskDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: service:<service id> or voucher:<reservation id>
+          example: service:a1b2c3d4-e5f6-4890-abcd-ef1234567890
+        type:
+          allOf:
+            - $ref: "#/components/schemas/RetryTaskType"
+        partner:
+          type: string
+          enum:
+            - A
+            - B
+            - D
+        reservationId:
+          type: string
+          format: uuid
+        reservationNumber:
+          type: string
+          example: R-000002
+        description:
+          type: string
+          example: Masaż relaksacyjny
+        status:
+          type: string
+          description: Current status of the service or of the voucher
+          example: CANCEL_RETRY
+      required:
+        - id
+        - type
+        - partner
+        - reservationId
+        - reservationNumber
+        - description
+        - status
+    RetryTasksResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetryTaskDto"
+      required:
+        - items
+    RetryResultDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: service:a1b2c3d4-e5f6-4890-abcd-ef1234567890
+        done:
+          type: boolean
+          description: False when the partner still does not answer
+        status:
+          type: string
+          description: Status of the service or of the voucher after the attempt
+          example: CANCELLED
+      required:
+        - id
+        - done
+        - status

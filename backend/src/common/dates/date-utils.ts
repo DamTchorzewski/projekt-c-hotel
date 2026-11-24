@@ -13,7 +13,12 @@ const hotelDateFormat = new Intl.DateTimeFormat('en-CA', {
 
 // Dzisiejsza data w strefie hotelu, np. o 00:30 w Polsce jest już nowy dzień, choć w UTC jeszcze stary. (DamianTchorzewski_72206)
 export function todayInHotel(now: Date = new Date()): string {
-  return hotelDateFormat.format(now);
+  return dateInHotel(now);
+}
+
+// Dzień, w którym wypada dana chwila w strefie hotelu. (DamianTchorzewski_72206)
+export function dateInHotel(moment: Date): string {
+  return hotelDateFormat.format(moment);
 }
 
 // Daty bez godziny trzymamy w UTC o północy, aby nie przesuwały się przy zmianie czasu. (DamianTchorzewski_72206)
