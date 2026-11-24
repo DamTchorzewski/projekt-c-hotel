@@ -911,6 +911,69 @@ paths:
       summary: Book a service at the partner (US-13, US-15)
       tags:
         - reservations
+  /api/v1/reservations/{id}/services/{serviceId}/reschedule:
+    post:
+      description: The new time is booked first and the old one is cancelled afterwards. When the partner refuses, the old time stays.
+      operationId: ReservationsController_rescheduleService
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: serviceId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookServiceDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StayServiceDto"
+        "400":
+          description: Invalid time (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "401":
+          description: Reception session is required (UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The reservation or the service does not exist (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: SLOT_TAKEN, SERVICE_OUTSIDE_STAY, SERVICE_TIME_CONFLICT or INVALID_STATE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The partner does not answer (PARTNER_UNAVAILABLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - reception-session: []
+      summary: Move a confirmed service to another time (US-17)
+      tags:
+        - reservations
   /api/v1/reservations/{id}/services/{serviceId}/cancel:
     post:
       description: A package service returns to the pool. When the partner does not answer, the status is CANCEL_RETRY.
@@ -1282,6 +1345,7 @@ components:
         - VOUCHER_ALREADY_USED
         - VOUCHER_INVALID
         - IDEMPOTENCY_CONFLICT
+        - SLOT_TAKEN
         - PARTNER_UNAVAILABLE
       description: Stable machine-readable error code
     ErrorDetailDto:
@@ -2402,7 +2466,7 @@ components:
       properties:
         id:
           type: string
-          description: service:<service id> or voucher:<reservation id>
+          description: service:<service id>, moved:<service id> (old time of a moved service) or voucher:<reservation id>
           example: service:a1b2c3d4-e5f6-4890-abcd-ef1234567890
         type:
           allOf:

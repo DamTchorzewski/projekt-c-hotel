@@ -21,7 +21,7 @@ export interface PartnerSlot {
 
 export interface BookServiceRequest {
   reservationId: string;
-  // Stały identyfikator pozycji planu: partner może po nim rozpoznać powtórzone żądanie. (DamianTchorzewski_72206)
+  // Pozycja planu i termin: partner może po nich rozpoznać powtórzone żądanie. (DamianTchorzewski_72206)
   reference: string;
   serviceId: string;
   startsAt: string;

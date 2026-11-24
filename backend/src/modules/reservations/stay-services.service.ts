@@ -102,6 +102,53 @@ export class StayServicesService {
     });
   }
 
+  // US-17: najpierw nowy termin, a dopiero po potwierdzeniu anulowanie starego. (DamianTchorzewski_72206)
+  reschedule(
+    reservationId: string,
+    serviceId: string,
+    dto: BookServiceDto,
+  ): Promise<PartnerServiceBooking> {
+    const scheduledAt = new Date(dto.scheduledAt);
+
+    return this.lock.run({ id: reservationId }, async (tx, reservation) => {
+      this.assertOpen(reservation);
+      const item = this.findItem(reservation, serviceId);
+      if (item.status !== ServiceStatus.CONFIRMED) {
+        throw domainErrors.invalidState(
+          'Only a confirmed service can be moved.',
+        );
+      }
+      if (item.previousExternalBookingId !== null) {
+        throw domainErrors.invalidState(
+          'The previous time is still waiting on the retry list.',
+        );
+      }
+      if (item.scheduledAt?.getTime() === scheduledAt.getTime()) {
+        return item;
+      }
+
+      this.assertDuringStay(reservation, scheduledAt);
+      const data = await this.bookAtPartner(reservation, item, scheduledAt);
+      if (data.status !== ServiceStatus.CONFIRMED) {
+        throw data.rejectionReason === RejectionReason.SLOT_TAKEN
+          ? domainErrors.slotTaken()
+          : domainErrors.partnerUnavailable();
+      }
+
+      return tx.partnerServiceBooking.update({
+        where: { id: item.id },
+        data: {
+          ...data,
+          previousExternalBookingId: (await this.cancellation.cancelAtPartner(
+            item,
+          ))
+            ? null
+            : item.externalBookingId,
+        },
+      });
+    });
+  }
+
   cancel(
     reservationId: string,
     serviceId: string,
@@ -168,7 +215,7 @@ export class StayServicesService {
 
       const result = await this.partners.forType(item.partnerType).book({
         reservationId: reservation.id,
-        reference: item.id,
+        reference: `${item.id}:${scheduledAt.toISOString()}`,
         serviceId: item.partnerServiceId,
         startsAt: scheduledAt.toISOString(),
         hotelReservationNumber: reservation.number,

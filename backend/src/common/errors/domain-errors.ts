@@ -69,6 +69,13 @@ export const domainErrors = {
       'The guest has another service at this time.',
     ),
 
+  // US-17: nowy termin odrzucony, stary pozostaje. (DamianTchorzewski_72206)
+  slotTaken: () =>
+    conflict(
+      ApiErrorCode.SLOT_TAKEN,
+      'The partner refused the new time. The service stays at the old one.',
+    ),
+
   // RB-14 (DamianTchorzewski_72206)
   checkInNotAllowed: () =>
     conflict(

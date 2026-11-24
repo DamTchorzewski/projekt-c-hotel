@@ -8,7 +8,8 @@ export enum RetryTaskType {
 
 export class RetryTaskDto {
   @ApiProperty({
-    description: 'service:<service id> or voucher:<reservation id>',
+    description:
+      'service:<service id>, moved:<service id> (old time of a moved service) or voucher:<reservation id>',
     example: 'service:a1b2c3d4-e5f6-4890-abcd-ef1234567890',
   })
   id: string;

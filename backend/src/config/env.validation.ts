@@ -126,6 +126,11 @@ export class EnvironmentVariables {
   @IsString()
   PARTNER_D_API_KEY?: string;
 
+  // Katalog zbudowanego frontendu. Ustawiony na hostingu, gdzie API i strona mają jeden adres. (DamianTchorzewski_72206)
+  @IsOptional()
+  @IsString()
+  FRONTEND_DIST?: string;
+
   // Liczba zaufanych serwerów pośredniczących (np. 1 na hostingu), aby limit żądań liczył prawdziwe adresy IP. (DamianTchorzewski_72206)
   @Type(() => Number)
   @IsInt()
